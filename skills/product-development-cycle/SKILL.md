@@ -13,9 +13,13 @@ This first working version is Codex-only. Discover available capabilities before
 
 1. Determine whether the request is to start, resume, audit, work on a module, or prepare a release.
 2. Read existing repository guidance and artifacts; recognize their current names instead of creating duplicates.
-3. Determine the current and target maturity stage.
-4. Select the first missing or invalidated gate within that stage's scope.
-5. Return one recommended next action; ask only for a decision that existing evidence cannot answer.
+3. When known, establish the selected release, commit, or content identity and compare it with the actually loaded identity.
+4. Surface the version state as matched, unknown, ambiguous, or mismatched.
+5. Determine the current and target maturity stage.
+6. Select the first missing or invalidated gate within that stage's scope.
+7. Return one recommended next action; ask only for a decision that existing evidence cannot answer.
+
+Do not mix two active versions. Never silently replace a shared or globally installed copy. Pause only transitions that depend on the unresolved version selection; continue independent authorized work.
 
 For the canonical gates and maturity transitions, read [the lifecycle reference](references/lifecycle.md). For Gate 3.5 or Gate 8, read [the financial model reference](references/financial-model.md).
 

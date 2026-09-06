@@ -32,6 +32,8 @@ Make one short, approximate decision: proceed, run a bounded experiment, change 
 
 This gate does not prove demand or profitability. It does not require a workbook, exact CAC/LTV, a universal Month-24 target, or fabricated numbers. For internal or non-commercial products, compare expected value with acceptable cost instead of inventing revenue.
 
+Map still-valid historical Gate 4.5 evidence and decisions into Gate 3.5. Ask only for missing or stale inputs. Preserve the historical baseline and recorded decisions rather than rewriting them to current terminology. This mapping keeps exactly one active early checkpoint: Gate 3.5.
+
 Exit when the decision, reasoning, strongest uncertainty, experiment boundary, success/revisit signal, and allowed resources are explicit.
 
 ## 4. Journey

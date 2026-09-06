@@ -47,6 +47,20 @@ class SkillContractTest(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn(field, skill)
 
+    def test_entry_point_surfaces_process_identity_drift(self):
+        skill = self.read_active("SKILL.md")
+        start = skill[skill.index("## Start") : skill.index("## Operating rules")]
+        for requirement in (
+            "selected release, commit, or content identity",
+            "actually loaded identity",
+            "unknown, ambiguous, or mismatched",
+            "Do not mix two active versions",
+            "Never silently replace a shared or globally installed copy",
+            "Pause only transitions that depend on the unresolved version selection",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, start)
+
     def test_active_skill_is_codex_only_and_routes_to_task_one_references(self):
         skill = self.read_active("SKILL.md")
         self.assertIn("Codex-only", skill)
@@ -99,6 +113,18 @@ class SkillContractTest(unittest.TestCase):
         finance = self.read_active("references/financial-model.md")
         self.assertIn("Reuse unchanged Gate 3.5 evidence", finance)
         self.assertIn("only enough for the named investment", finance)
+
+    def test_gate_3_5_reuses_valid_legacy_gate_4_5_evidence(self):
+        lifecycle = self.read_active("references/lifecycle.md")
+        gate = lifecycle[lifecycle.index("## 3.5.") : lifecycle.index("## 4.")]
+        for requirement in (
+            "Map still-valid historical Gate 4.5 evidence and decisions into Gate 3.5",
+            "Ask only for missing or stale inputs",
+            "Preserve the historical baseline and recorded decisions",
+            "exactly one active early checkpoint",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, gate)
 
     def test_candidate_docs_do_not_claim_release_or_installation_support(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
