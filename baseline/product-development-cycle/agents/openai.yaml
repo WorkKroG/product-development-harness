@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Development Cycle"
+  short_description: "Guide a product from discovery through release and iteration"
+  default_prompt: "Guide this project through the product development cycle and identify the next incomplete gate."

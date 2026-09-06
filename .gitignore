@@ -1,0 +1,3 @@
+# Private source package retained locally for the owner and coordinator.
+/.local-handoff/
+.DS_Store
