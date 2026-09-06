@@ -23,6 +23,10 @@ Do not mix two active versions. Never silently replace a shared or globally inst
 
 For the canonical gates and maturity transitions, read [the lifecycle reference](references/lifecycle.md). For Gate 3.5 or Gate 8, read [the financial model reference](references/financial-model.md).
 
+Read [quality gates](references/quality-gates.md) when classifying applicability or evidence, auditing readiness, or preparing verification or release. Before relying on user-owned tasks, native messages or waits, model assignment, recovery, GitHub service access, or a platform denial, read [Codex runtime boundaries](references/codex-runtime.md). Before a stage depends on a specialist capability, model, tool, or fallback, read [dependency boundaries](references/dependencies.md).
+
+If project-local guidance, a product profile, or a status and evidence pointer is missing, adapt the corresponding [AGENTS template](assets/AGENTS.template.md), [product profile template](assets/project-profile.template.md), or [project status template](assets/PROJECT_STATUS.template.md). Do not copy templates blindly, overwrite an existing source of truth, assume capability availability, or expand authority.
+
 ## Operating rules
 
 - A gate is complete only when its decision has relevant evidence, not because a document exists.
