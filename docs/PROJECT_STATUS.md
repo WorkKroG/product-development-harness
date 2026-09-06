@@ -8,9 +8,12 @@ The owner authorized a separate project and supplied the repository. The prepare
 package has been adapted for this project. The source skill is preserved under `baseline/`;
 the target harness is not implemented or installed. Bootstrap is local; no public push is implied.
 
-The next stage is to prepare and approve the first working-version plan (Technical/Delivery
-planning, with an evidence-based check of any material missing requirements). Do not repeat
-discovery or all workshops merely because this is a new repository.
+The owner approved the architectural package `FWP-PLAN-v1` and Module 1 on 2026-09-06.
+The detailed implementation plan at content identity
+`sha256:051508d3f6dbf15f99752c52e6ba0bedec6ec4a16c052f913a9e502088498d03`
+received independent `PLAN_PASS`. Module 1 coordination may start. No implementation,
+GitHub mutation, installation or release has started. Do not repeat discovery or all workshops
+merely because this is a new repository.
 
 ## Accepted decisions
 
@@ -26,12 +29,10 @@ discovery or all workshops merely because this is a new repository.
 
 ## Next action for the main coordinator
 
-Read AGENTS.md, README.md, SPEC.md, AUDIT.md, SOURCES.md, HANDOFF.md and EVALUATION.md.
-Check baseline hashes. Propose a compact first-working-version plan: user outcome, scope,
-existing mechanisms to reuse, bounded modules/dependencies, model assignment, meaningful checks,
-pilot and completion criteria. Separate later installation/release and broader lifecycle testing.
-Bring remaining consequential choices and this plan to the owner in this task. Do not ask again
-for accepted principles, and do not start implementation or create child tasks before its mandate.
+Create the Module 1 Task coordinator from the reviewed plan, then dispatch separate authorized
+Implementation and Change Review tasks for its first Work Item. Preserve the approved boundaries:
+local/synthetic work only, manual merge, no GitHub mutation, public push, global installation or
+release. Any change to the reviewed plan identity requires a new PLAN review and owner decision.
 
 ## Evidence and limits
 
@@ -40,6 +41,7 @@ package checks. A01–A24 and E01–E41 are audit findings and proposed scenario
 tests. Independent specification review, pilot, installation and release are still pending.
 The private original transfer package is available locally under `.local-handoff/`, ignored by Git.
 
-Remaining choices: details of the first-version plan and consequential unresolved SPEC proposals;
-pilot; license/provenance and publication scope before public push. Repository name, local location
-and public visibility are now known, and no longer open questions.
+The FWP choices, Module 1 and synthetic QuietFollow pilot are approved in `FWP-PLAN-v1` and the
+reviewed implementation plan. Remaining choices are later module plans, license/provenance and
+publication scope before public push, and the MVP installation/live-GitHub scope. Repository name,
+local location and public visibility are known and are no longer open questions.
