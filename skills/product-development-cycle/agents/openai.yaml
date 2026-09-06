@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Development Cycle"
+  short_description: "Guide staged product work through evidence-based gates"
+  default_prompt: "Use $product-development-cycle to identify this product's current maturity stage, evidence, and next incomplete gate."
