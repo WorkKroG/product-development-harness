@@ -88,7 +88,7 @@ For lifecycle entry, audit, and gate transitions, return:
 6. **Exit criteria**
 7. **Next gate**
 
-Keep the recommendation to one next action unless independent preparation can safely proceed in parallel. Route substantive product, investment, architecture-impact, residual-risk, and release decisions through the main Product coordinator. Routine technical choices stay within the approved scope.
+Keep the recommendation to one next action unless independent preparation can safely proceed in parallel. Local module decisions stay in Task within delegated scope. Route only shared or project-wide architecture and contracts, project scope, cross-task dependencies or order, and decisions with material cost, risk, or schedule impact through Product. Substantive human decisions stay with the owner in their applicable coordinator task. Routine technical choices stay within the approved scope.
 
 ## Completion
 

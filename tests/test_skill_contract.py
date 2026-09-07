@@ -194,6 +194,32 @@ class SkillContractTest(unittest.TestCase):
             with self.subTest(requirement=requirement):
                 self.assertIn(requirement, combined)
 
+    def test_entry_routes_only_project_boundaries_to_product(self):
+        skill = self.read_active("SKILL.md")
+        entry = skill[skill.index("## Entry response contract") : skill.index("## Completion")]
+        self.assertNotIn(
+            "Route substantive product, investment, architecture-impact, residual-risk, "
+            "and release decisions through the main Product coordinator.",
+            entry,
+        )
+        for requirement in (
+            "Local module decisions stay in Task",
+            "shared or project-wide architecture and contracts",
+            "project scope, cross-task dependencies or order",
+            "material cost, risk, or schedule impact",
+            "applicable coordinator task",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, entry)
+
+    def test_work_item_delivery_sequence_preserves_one_reviewed_pr(self):
+        delivery = self.read_active("references/agentic-development.md")
+        self.assertIn(
+            "Work Item → optional Issue → isolated branch/worktree → Implementation → "
+            "Change Review → one PR → manual merge",
+            delivery,
+        )
+
     def test_profile_has_decision_bearing_fields_and_unknown_defaults(self):
         profile = self.read_active("assets/project-profile.template.md")
         for heading in (

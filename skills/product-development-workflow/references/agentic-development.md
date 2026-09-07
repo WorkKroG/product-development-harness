@@ -33,6 +33,10 @@ Before planning or resuming, reconcile binding sources, current implementation, 
 approved plan, accepted prior Work Items, exact Git identities, and relevant native or
 service state. Preserve completed work; never recreate accepted Work Items.
 
+Use this complete delivery sequence for each approved candidate: Work Item → optional Issue → isolated branch/worktree → Implementation → Change Review → one PR → manual merge.
+Create the Issue only when it is useful or required. Keep the one reviewed candidate in
+one PR so integration does not fragment its scope or evidence.
+
 Every work or handoff package uses typed identities. Record Role, Executor kind and
 Native ID, Parent identity (kind and native ID), and Report to identity (kind and native
 ID). A user-owned task uses a task/thread ID; an internal agent session uses an agent ID.
