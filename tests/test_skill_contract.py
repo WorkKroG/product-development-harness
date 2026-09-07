@@ -84,6 +84,116 @@ class SkillContractTest(unittest.TestCase):
             with self.subTest(target=target):
                 self.assertTrue((ACTIVE / target).is_file())
 
+    def test_delivery_routes_resolve(self):
+        skill = self.read_active("SKILL.md")
+        links = set(re.findall(r"\[[^]]+\]\(([^)]+\.md)\)", skill))
+        required_routes = {
+            "references/agentic-development.md",
+            "assets/role-prompts.md",
+            "assets/work-item-and-review-templates.md",
+        }
+        self.assertTrue(
+            required_routes.issubset(links),
+            f"missing delivery routes from SKILL.md: {sorted(required_routes - links)}",
+        )
+        for target in required_routes:
+            with self.subTest(target=target):
+                self.assertTrue((ACTIVE / target).is_file())
+
+    def test_worker_and_coordinator_identities_are_typed(self):
+        combined = "\n".join(
+            self.read_active(relative_path)
+            for relative_path in (
+                "references/agentic-development.md",
+                "references/codex-runtime.md",
+                "assets/role-prompts.md",
+                "assets/work-item-and-review-templates.md",
+            )
+        )
+        for requirement in (
+            "Executor kind",
+            "Native ID",
+            "Parent identity",
+            "Report to identity",
+            "user-owned task",
+            "internal agent session",
+            "task/thread ID",
+            "agent ID",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, combined)
+
+    def test_delivery_packages_include_review_and_decision_identity(self):
+        templates = self.read_active("assets/work-item-and-review-templates.md")
+        for requirement in (
+            "Work Item/module identity",
+            "Outcome/why",
+            "Scope/non-goals",
+            "Binding sources",
+            "Maturity identity",
+            "Architecture identity",
+            "Process identity",
+            "Plan identity",
+            "Exact base",
+            "Exact head",
+            "Allowed paths",
+            "Permissions/data/recovery",
+            "Acceptance criteria",
+            "Checks",
+            "Role",
+            "Executor kind",
+            "Native ID",
+            "Parent identity",
+            "Report to identity",
+            "Next action",
+            "Independent reviewer kind",
+            "Reviewed plan hash or base/head/main",
+            "Verdict",
+            "Invalidation condition",
+            "Package identity",
+            "Decision authority and location",
+            "Owner decision",
+            "Approved boundaries",
+            "Old process identity",
+            "New process identity",
+            "Superseded verdicts",
+            "Acknowledged instruction update",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, templates)
+
+    def test_project_event_and_escalation_packages_are_bounded(self):
+        delivery = self.read_active("references/agentic-development.md")
+        templates = self.read_active("assets/work-item-and-review-templates.md")
+        combined = f"{delivery}\n{templates}"
+        for event in (
+            "ACTIVE",
+            "ESCALATION_REQUIRED",
+            "READY_FOR_INTEGRATION",
+            "DONE",
+            "CANCELLED",
+        ):
+            with self.subTest(event=event):
+                self.assertIn(event, combined)
+        for requirement in (
+            "Task identity",
+            "Short reason/result",
+            "Evidence pointer",
+            "Requested decision",
+            "Boundary exceeded",
+            "Affected tasks/contracts",
+            "Options/recommendation",
+            "Required authority/decision",
+            "Paused scope",
+            "Independent work allowed to continue",
+            "current Change Review",
+            "FINAL_PASS",
+            "manual merge",
+            "full transcripts",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, combined)
+
     def test_profile_has_decision_bearing_fields_and_unknown_defaults(self):
         profile = self.read_active("assets/project-profile.template.md")
         for heading in (
