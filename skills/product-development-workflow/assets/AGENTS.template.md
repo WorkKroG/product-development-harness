@@ -32,11 +32,19 @@ Discover commands from the repository before dependent work. Do not assume a sta
 ## Authority
 
 - Product decision owner and coordinator: Unknown
+- Module Task coordinator and delegated scope: Unknown
+- Local decision location and versioned evidence: Unknown
 - Approved change scope: Unknown
 - External actions separately authorized: Unknown
 - Manual merge owner: Unknown
 
 Product approval defines desired scope; account access authenticates an account; platform permission allows a particular attempted action. None substitutes for the others. Record a denial and continue safe independent work; do not bypass it.
+
+Module plans, local requirements and UX decisions, feedback, corrections, and acceptance
+stay with the Task coordinator within delegated scope. Route shared architecture or
+contracts, project scope, cross-task dependencies or order, and material cost, risk, or
+schedule changes to the Product coordinator. Substantive owner choices and manual merge
+or release remain human; do not request an unchanged decision twice.
 
 ## Delivery and review
 
@@ -45,6 +53,12 @@ Product approval defines desired scope; account access authenticates an account;
 - Require independent review of the exact candidate before recommendation.
 - Keep manual merge separately authorized.
 - Run fresh checks proportional to behavior and risk; automated checks do not replace required manual evidence.
+- Follow the project's adapted delivery coordination reference and work/review record
+  locations: Unknown. Keep Product and Task as user-owned coordinator tasks; use distinct
+  bounded internal agent sessions for PLAN, Implementation, Change Review, and FINAL.
+- Record executor, parent, and report-to kinds with their native IDs. A task/thread ID and
+  an internal agent ID are not interchangeable. Report upward only meaningful project
+  transitions; do not relay full transcripts or every local correction.
 
 ## Runtime
 

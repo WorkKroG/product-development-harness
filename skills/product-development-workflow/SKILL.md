@@ -25,6 +25,12 @@ For the canonical gates and maturity transitions, read [the lifecycle reference]
 
 Read [quality gates](references/quality-gates.md) when classifying applicability or evidence, auditing readiness, or preparing verification or release. Before relying on user-owned tasks, native messages or waits, model assignment, recovery, GitHub service access, or a platform denial, read [Codex runtime boundaries](references/codex-runtime.md). Before a stage depends on a specialist capability, model, tool, or fallback, read [dependency boundaries](references/dependencies.md).
 
+When an approved module needs planning, implementation, review, integration, escalation,
+or recovery, read [agentic delivery coordination](references/agentic-development.md). Adapt
+the bounded [delivery role prompts](assets/role-prompts.md) and the applicable
+[work item and review templates](assets/work-item-and-review-templates.md); do not turn
+them into a second live status system.
+
 If project-local guidance, a product profile, or a status and evidence pointer is missing, adapt the corresponding [AGENTS template](assets/AGENTS.template.md), [product profile template](assets/project-profile.template.md), or [project status template](assets/PROJECT_STATUS.template.md). Do not copy templates blindly, overwrite an existing source of truth, assume capability availability, or expand authority.
 
 ## Operating rules
@@ -37,6 +43,14 @@ If project-local guidance, a product profile, or a status and evidence pointer i
 - Keep scope, non-goals, permissions, data lifecycle, failure, recovery, and measurable outcomes explicit.
 - Do not fabricate interviews, measurements, sources, market figures, financial values, or readiness evidence.
 - Stop only the transition that depends on missing evidence or capability; continue unrelated authorized work.
+- Keep module planning, local requirements and UX decisions, feedback, corrections, and
+  acceptance in its user-owned Task coordinator within delegated scope; do not request
+  unchanged decisions again through Product.
+- Route shared architecture/contracts, project scope, cross-task dependencies or order,
+  and material cost, risk, or schedule changes to the Product coordinator. Substantive
+  owner choices and manual merge/release remain human.
+- Use distinct internal agent sessions for PLAN, Implementation, Change Review, and FINAL.
+  Preserve typed native identities and give each role only bounded context.
 
 ## Lifecycle routing
 
@@ -74,7 +88,7 @@ For lifecycle entry, audit, and gate transitions, return:
 6. **Exit criteria**
 7. **Next gate**
 
-Keep the recommendation to one next action unless independent preparation can safely proceed in parallel. Route substantive product, investment, architecture-impact, residual-risk, and release decisions through the main Product coordinator. Routine technical choices stay within the approved scope.
+Keep the recommendation to one next action unless independent preparation can safely proceed in parallel. Local module decisions stay in Task within delegated scope. Route only shared or project-wide architecture and contracts, project scope, cross-task dependencies or order, and decisions with material cost, risk, or schedule impact through Product. Substantive human decisions stay with the owner in their applicable coordinator task. Routine technical choices stay within the approved scope.
 
 ## Completion
 

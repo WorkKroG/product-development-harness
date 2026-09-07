@@ -10,6 +10,19 @@ Perform at most one bounded capability check for each capability on which the cu
 
 Creating a user-owned task requires user mandate and platform support. A queued client ID is provisional creation state and never a usable task/thread ID. Resolve and record the real task/thread ID before descendant creation, native messaging, waiting, or using it as `report_to` or self identity. If the task is not immediately listed, reconcile its creation state; do not create a duplicate.
 
+Product, Task, and an explicitly authorized temporary Architecture coordinator are
+user-owned tasks. Create, read, message, wait for, or resume them only with the native
+user-owned task tool family and a real task/thread ID. PLAN, Implementation, Change
+Review, and FINAL are internal agent sessions under Task; spawn, message, wait for, or
+resume them only with the internal agent tool family and an agent ID. Record Executor
+kind and Native ID separately. An internal agent ID must never be passed to a user-owned
+task API, and a task/thread ID must never be passed to an internal agent API.
+
+Every worker package also records Parent identity and Report to identity as typed
+`kind + native ID` pairs plus a Next action. Confirm a usable parent or report-to ID
+before descendant creation or delivery. Platform acceptance of a model or task request
+is distinct from authorization for the work it would perform.
+
 ## Quiet waiting
 
 Use one compact bounded wait or heartbeat only while a useful next transition exists. Unchanged in-progress state is silent. Notify only for a material transition, completion, failure, blocker, or required owner action. Do not create duplicate monitors, and stop or delete the wait when its transition is complete. Do not repeat an approval prompt on each wait tick.
@@ -19,6 +32,12 @@ When the active process or instruction identity drifts, reconcile it at a safe b
 ## Fresh-state recovery
 
 After interruption or desktop restart, first reread repository status and decisions, current Git identity, authorized live Issue/PR/CI/merge evidence, and native task state. Preserve work in progress, reconcile contradictions, and act from fresh evidence. Do not claim unattended events and do not replay completed work. A stale local status pointer cannot override fresher GitHub, native task, or Git evidence.
+
+Reconcile both user-owned tasks and internal agent sessions with their correct tool
+families. If an internal worker is unavailable, preserve its candidate, findings, and
+checks, then explicitly record the replacement agent ID before continuing the same Work
+Item. Update the affected existing task or monitor at a safe boundary, record
+acknowledgement of the current process identity, and do not recreate completed work.
 
 ## Model records
 
