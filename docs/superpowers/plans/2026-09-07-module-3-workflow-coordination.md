@@ -32,6 +32,9 @@ Codex task/subagent capabilities where available. No new dependency or installat
   changes go to Product; substantive owner choices remain human. Manual merge and release remain human.
 - Model matrix: Product/Task/PLAN `gpt-5.6-sol/high`; ordinary Implementation `gpt-5.6-sol/medium`;
   Change Review `gpt-5.6-sol/high`; FINAL/architecture/security/second opinion `gpt-6-astra/high`.
+  Small obvious low-risk changes use `gpt-5.6-terra/medium`; complex debugging uses
+  `gpt-5.6-sol/high`, escalating to `gpt-6-astra/high`. Early PM/finance/UX roles use
+  `gpt-5.6-sol/high`. Encode this complete approved matrix in `role-prompts.md`.
   Native assignments and availability are recorded separately from requested/verified runtime facts.
 - Existing platform denials remain binding. Moving work to a subagent does not authorize a denied action.
 - No GitHub mutation, push, repository rename, global installation, paid action, pilot or release is
@@ -85,7 +88,8 @@ SPEC §§6–9, E08–E25 (including the revised E10/E14 subcases), current repo
 
 - Work package: Work Item/module identity, outcome/why, scope/non-goals, binding sources,
   dependencies, maturity/architecture/process/plan identities, exact base/head, allowed paths,
-  permissions/data/recovery, acceptance criteria, checks, role, executor kind and native ID.
+  permissions/data/recovery, acceptance criteria, checks, role, executor kind and native ID,
+  Parent identity (kind and native ID), Report to identity (kind and native ID), Next action.
 - Review record: phase, independent reviewer kind/ID, reviewed plan hash or base/head/main,
   binding sources, checks, findings, verdict and invalidation condition. New head invalidates
   Change Review PASS; main drift invalidates FINAL; plan changes invalidate PLAN_PASS.
@@ -110,7 +114,9 @@ SPEC §§6–9, E08–E25 (including the revised E10/E14 subcases), current repo
   inventory; no full-history fork. Confirm it is the sole writer in the shared worktree.
 - [ ] **3. Extend the existing contract tests for stable interfaces.** Add checks that each new route
   resolves, role/work/review packages carry executor kind and native ID, and decision/event/recovery
-  fields are present. Preserve existing lifecycle/runtime/model/leakage regressions. Test names:
+  fields are present. Explicitly check `Parent identity`, `Report to identity` and `Next action`
+  in work/handoff packages, with kind/native ID for both routing identities. Preserve existing
+  lifecycle/runtime/model/leakage regressions. Test names:
   `test_delivery_routes_resolve`, `test_worker_and_coordinator_identities_are_typed`,
   `test_delivery_packages_include_review_and_decision_identity`,
   `test_project_event_and_escalation_packages_are_bounded`.
