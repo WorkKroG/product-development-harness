@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTIVE = ROOT / "skills/product-development-cycle"
+ACTIVE = ROOT / "skills/product-development-workflow"
 
 
 class SkillContractTest(unittest.TestCase):
@@ -363,10 +363,14 @@ class SkillContractTest(unittest.TestCase):
         self.assertNotIn("Installation is supported", readme)
         self.assertNotIn("Released", changelog)
 
-    def test_openai_metadata_keeps_the_existing_identity(self):
+    def test_active_skill_uses_the_workflow_identity(self):
+        skill = self.read_active("SKILL.md")
         metadata = self.read_active("agents/openai.yaml")
-        self.assertIn('display_name: "Product Development Cycle"', metadata)
-        self.assertIn("$product-development-cycle", metadata)
+        self.assertIn("name: product-development-workflow", skill)
+        self.assertIn("# Product Development Workflow", skill)
+        self.assertIn('display_name: "Product Development Workflow"', metadata)
+        self.assertIn("$product-development-workflow", metadata)
+        self.assertFalse((ROOT / "skills/product-development-cycle").exists())
 
 
 if __name__ == "__main__":

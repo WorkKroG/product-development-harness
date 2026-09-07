@@ -1,19 +1,17 @@
 # Project status
 
-Date: 2026-09-06. Repository: `WorkKroG/product-development-harness`.
+Date: 2026-09-07. Product: Product Development Workflow.
+Repository: `WorkKroG/product-development-harness` (repository slug unchanged).
 
 ## Current stage
 
-The owner authorized a separate project and supplied the repository. The prepared transfer
-package has been adapted for this project. The source skill is preserved under `baseline/`;
-the target harness is not implemented or installed. Bootstrap is local; no public push is implied.
+Coordination design and naming amendment accepted by the owner. Module 3 needs a revised
+plan before delivery implementation resumes. The active repository skill is being renamed
+to `product-development-workflow`; this does not install or release it.
 
-The owner approved the architectural package `FWP-PLAN-v1` and Module 1 on 2026-09-06.
-The detailed implementation plan at content identity
-`sha256:051508d3f6dbf15f99752c52e6ba0bedec6ec4a16c052f913a9e502088498d03`
-received independent `PLAN_PASS`. Module 1 coordination may start. No implementation,
-GitHub mutation, installation or release has started. Do not repeat discovery or all workshops
-merely because this is a new repository.
+The fetched main at this checkpoint is `4ed8c87960bfd04e528cd98303c54e053228c7ce`,
+containing the merged lifecycle core and profile/runtime modules. This is immutable context,
+not a mirror of live PR/CI state; obtain fresh state from Git/GitHub before dependent work.
 
 ## Accepted decisions
 
@@ -22,23 +20,35 @@ merely because this is a new repository.
   before scaling. Prototype code may be discarded; rewriting is not mandatory.
 - Light Gate 3.5 between Positioning and Journey replaces the heavy early 4.5. Later Finance
   refines the same economics for the investment at hand.
-- Main coordinator for owner decisions; automatic result handoff, independent plan/change/module
-  review, agreed native model matrix, sole `gh` service access, manual merge.
+- Product Development Workflow is the product name; product-development-workflow is the
+  renamed active skill. Baseline, installed global copy and GitHub repo slug are unchanged.
+- One Product coordinator and one user-owned Task coordinator per large module. The owner
+  works and agrees local scope/plan/acceptance in the Task coordinator directly.
+- PLAN, Implementation, Change Review and FINAL use distinct internal subagents with bounded
+  context and independent review. Existing WIP must survive the change in topology.
+- Only main state transitions travel upward. Project scope/architecture/contracts and material
+  cost/risk/schedule changes are escalated. Product can commission an authorized architecture
+  task, record a versioned decision and send revised boundaries to affected tasks.
+- Native model assignments, sole `gh` service access and manual merge remain required.
 - Start with a small usable process, validate on a small synthetic product, then extend coverage.
 - Bootstrap baseline and specification separately before implementation.
 
 ## Next action for the main coordinator
 
-Create the Module 1 Task coordinator from the reviewed plan, then dispatch separate authorized
-Implementation and Change Review tasks for its first Work Item. Preserve the approved boundaries:
-local/synthetic work only, manual merge, no GitHub mutation, public push, global installation or
-release. Any change to the reviewed plan identity requires a new PLAN review and owner decision.
+Complete independent review of the naming/coordination amendment and the revised
+[Module 3 plan](superpowers/plans/2026-09-07-module-3-workflow-coordination.md).
+Then hand the reviewed package to the existing Module 3 Task coordinator for task-local
+plan acceptance and WIP reconciliation. The previous MODULE3-PLAN-v2 verdict does not cover
+the new topology or skill path; do not resume from its old execution instructions.
+No global install, automatic merge, repository rename, pilot or release is included here.
 
 ## Evidence and limits
 
-SPEC.md and README.md contain the transferred requirements/decisions. VERIFICATION.md records
-package checks. A01–A24 and E01–E41 are audit findings and proposed scenarios, not passed runtime
-tests. Independent specification review, pilot, installation and release are still pending.
+SPEC.md §§6–8 is the accepted coordination design. README.md and AGENTS.md provide current
+navigation. The older FWP plan is historical where superseded. A01–A24 and E01–E41 are audit
+findings and proposed scenarios, not passed runtime tests. The 20 Python contract checks
+passed on the fetched base before this amendment. The revised delivery reference/templates
+and behavioral evaluation remain Module 3+ work; pilot, installation and release are pending.
 The private original transfer package is available locally under `.local-handoff/`, ignored by Git.
 
 The FWP choices, Module 1 and synthetic QuietFollow pilot are approved in `FWP-PLAN-v1` and the

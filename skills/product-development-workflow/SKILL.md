@@ -1,9 +1,9 @@
 ---
-name: product-development-cycle
+name: product-development-workflow
 description: Guide a digital product through evidence-based discovery, staged implementation, verification, release, and learning in Codex. Use when starting, resuming, auditing, or preparing a product, module, or release while preserving existing evidence and selecting the next incomplete gate.
 ---
 
-# Product Development Cycle
+# Product Development Workflow
 
 Run a gated, evidence-based product workflow in Codex. Preserve useful existing work, match depth to the product's maturity and current decision, and continue from the first incomplete or invalidated gate.
 
