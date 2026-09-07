@@ -1,5 +1,14 @@
 # Product Development Harness First Working Version Implementation Plan
 
+> **Historical FWP-PLAN-v1 (2026-09-06).** Preserve completed-module evidence and this
+> plan's original examples. The owner replaced its naming and user-owned worker topology
+> on 2026-09-07: use SPEC.md §§6–8 and
+> [the revised Module 3 plan](2026-09-07-module-3-workflow-coordination.md).
+> Old `skills/product-development-cycle` paths map to `skills/product-development-workflow`;
+> baseline paths do not change. Old all-decisions-through-Product and mandatory user-owned
+> worker instructions below are superseded, not executable policy. Remaining tasks need
+> module plans reconciled with the accepted amendment before execution.
+
 > **For agentic workers:** REQUIRED EXECUTION PROTOCOL: use the repository-specific user-owned task topology in this plan. A Task coordinator dispatches one separate Implementation task and one separate Change Review task per Work Item, then obtains module FINAL after manual merge. Subagents and inline execution must not replace these roles. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Deliver a repository-local, reviewable `product-development-cycle` harness candidate that can start or resume one synthetic Codex product, select the correct stage-aware next gate, and coordinate one module through independent review without manual result relay.
