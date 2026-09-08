@@ -431,12 +431,12 @@ def check_c08(root: Path) -> Check:
 
 
 def _markdown_section(content: str, heading: str) -> str:
-    start_marker = f"## {heading}"
-    start = content.find(start_marker)
-    if start < 0:
+    match = re.search(rf"(?m)^## {re.escape(heading)}$", content)
+    if match is None:
         return ""
-    next_heading = content.find("\n## ", start + len(start_marker))
-    return content[start:] if next_heading < 0 else content[start:next_heading]
+    following = re.search(r"(?m)^## .+$", content[match.end() :])
+    end = len(content) if following is None else match.end() + following.start()
+    return content[match.start() : end]
 
 
 @prerequisite_safe("C09")

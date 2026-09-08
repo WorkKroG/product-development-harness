@@ -290,6 +290,16 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
         self.assertIn("Transition evidence required", relocated)
         self.assert_check(self.checker.check_c08(self.root), "C08", "FAIL")
 
+    def test_c08_rejects_a_required_heading_with_a_suffix(self):
+        source = self.root / "skills/product-development-workflow/assets/project-profile.template.md"
+        original = source.read_text(encoding="utf-8")
+        self.assertIn("## Architecture\n", original)
+        source.write_text(
+            original.replace("## Architecture\n", "## Architecture notes\n", 1),
+            encoding="utf-8",
+        )
+        self.assert_check(self.checker.check_c08(self.root), "C08", "FAIL")
+
     def test_c09_requires_every_section_local_handoff_and_review_label(self):
         self.assert_check(self.checker.check_c09(self.root), "C09", "PASS")
         source = self.root / "skills/product-development-workflow/assets/work-item-and-review-templates.md"
