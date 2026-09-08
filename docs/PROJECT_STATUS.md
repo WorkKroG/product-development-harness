@@ -1,17 +1,14 @@
 # Project status
 
-Date: 2026-09-07. Product: Product Development Workflow.
+Date: 2026-09-08. Product: Product Development Workflow.
 Repository: `WorkKroG/product-development-harness` (repository slug unchanged).
 
 ## Current stage
 
-Coordination design and naming amendment accepted by the owner. Module 3 needs a revised
-plan before delivery implementation resumes. The active repository skill is being renamed
-to `product-development-workflow`; this does not install or release it.
-
-The fetched main at this checkpoint is `4ed8c87960bfd04e528cd98303c54e053228c7ce`,
-containing the merged lifecycle core and profile/runtime modules. This is immutable context,
-not a mirror of live PR/CI state; obtain fresh state from Git/GitHub before dependent work.
+Module 3 is integrated at base `f008c78980113f67f5bc73c7e93adcf8ad003423`.
+The Module 4 candidate adds a standard-library structural checker and synthetic offline
+review-state fixtures for C01–C12. This evidence is local structural evidence only; it does
+not install, publish, merge, or release the workflow and is not a mirror of live PR/CI state.
 
 ## Accepted decisions
 
@@ -35,23 +32,17 @@ not a mirror of live PR/CI state; obtain fresh state from Git/GitHub before depe
 
 ## Next action for the main coordinator
 
-Complete independent review of the naming/coordination amendment and the revised
-[Module 3 plan](superpowers/plans/2026-09-07-module-3-workflow-coordination.md).
-Then hand the reviewed package to the existing Module 3 Task coordinator for task-local
-plan acceptance and WIP reconciliation. The previous MODULE3-PLAN-v2 verdict does not cover
-the new topology or skill path; do not resume from its old execution instructions.
-No global install, automatic merge, repository rename, pilot or release is included here.
+Perform independent Change Review of the exact Module 4 candidate against
+[MODULE4-PLAN-v1](superpowers/plans/2026-09-07-module-4-deterministic-structural-checker.md).
+Any new head invalidates that review. Integration remains a separate manually authorized step.
 
 ## Evidence and limits
 
 SPEC.md §§6–8 is the accepted coordination design. README.md and AGENTS.md provide current
-navigation. The older FWP plan is historical where superseded. A01–A24 and E01–E41 are audit
-findings and proposed scenarios, not passed runtime tests. The 20 Python contract checks
-passed on the fetched base before this amendment. The revised delivery reference/templates
-and behavioral evaluation remain Module 3+ work; pilot, installation and release are pending.
+navigation. The Module 4 checker command and its synthetic inputs are documented in README;
+fresh verification output and the exact candidate SHA belong to the implementation/review
+evidence. A01–A24 and E01–E41 remain audit findings and proposed scenarios, not passed runtime
+tests. Pilot, installation and release evidence remain pending.
 The private original transfer package is available locally under `.local-handoff/`, ignored by Git.
 
-The FWP choices, Module 1 and synthetic QuietFollow pilot are approved in `FWP-PLAN-v1` and the
-reviewed implementation plan. Remaining choices are later module plans, license/provenance and
-publication scope before public push, and the MVP installation/live-GitHub scope. Repository name,
-local location and public visibility are known and are no longer open questions.
+Structural checks do not prove behavioral correctness.
