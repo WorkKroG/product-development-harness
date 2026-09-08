@@ -276,6 +276,20 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
                 self.assert_check(self.checker.check_c08(self.root), "C08", "FAIL")
         source.write_text(original, encoding="utf-8")
 
+    def test_c08_rejects_a_required_field_relocated_to_the_wrong_section(self):
+        source = self.root / "skills/product-development-workflow/assets/project-profile.template.md"
+        original = source.read_text(encoding="utf-8")
+        field_line = "- Transition evidence required: Unknown\n"
+        self.assertIn(field_line, original)
+        relocated = original.replace(field_line, "", 1).replace(
+            "## Product\n",
+            "## Product\n\n" + field_line,
+            1,
+        )
+        source.write_text(relocated, encoding="utf-8")
+        self.assertIn("Transition evidence required", relocated)
+        self.assert_check(self.checker.check_c08(self.root), "C08", "FAIL")
+
     def test_c09_requires_every_section_local_handoff_and_review_label(self):
         self.assert_check(self.checker.check_c09(self.root), "C09", "PASS")
         source = self.root / "skills/product-development-workflow/assets/work-item-and-review-templates.md"
@@ -546,6 +560,21 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         for leak in leak_lines:
             self.assertNotIn(leak, result.stdout)
 
+    def test_c12_failure_json_still_ends_with_the_mandatory_limitation(self):
+        active = self.root / "skills/product-development-workflow/references/lifecycle.md"
+        with active.open("a", encoding="utf-8") as stream:
+            stream.write("\nTODO: synthetic operational marker\n")
+        result = run_checker(self.root, self.valid_state)
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(["C12"], payload["failed"])
+        c12 = next(check for check in payload["checks"] if check["id"] == "C12")
+        self.assertTrue(
+            c12["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
+
     def test_incomplete_review_state_is_post_parse_exit_two_with_empty_core(self):
         result = run_checker(self.root, "tests/fixtures/invalid/incomplete-review-state.json")
         self.assertEqual(2, result.returncode)
@@ -568,6 +597,21 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual("invalid-root", payload["error"]["code"])
         self.assertEqual([], payload["checks"])
+
+    def test_missing_directly_read_active_file_returns_twelve_structured_checks(self):
+        missing = self.root / "skills/product-development-workflow/SKILL.md"
+        missing.unlink()
+        result = run_checker(self.root, self.valid_state)
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(12, len(payload["checks"]))
+        self.assertEqual(
+            [f"C{number:02d}" for number in range(1, 13)],
+            [check["id"] for check in payload["checks"]],
+        )
+        self.assertIn("C02", payload["failed"])
+        self.assertNotIn(str(self.root), result.stdout)
 
 
 if __name__ == "__main__":

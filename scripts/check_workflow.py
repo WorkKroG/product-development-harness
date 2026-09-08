@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict, dataclass
+from functools import wraps
 import hashlib
 import json
 from pathlib import Path
@@ -89,55 +90,78 @@ REVIEW_RECORD_LABELS = (
     "Invalidation condition",
 )
 
-PROFILE_SECTIONS = (
-    "Process identity",
-    "Product",
-    "Maturity",
-    "Architecture",
-    "Load profile",
-    "Sources of truth",
-    "Runtime",
-    "Models",
-    "Economics",
-    "Applicability",
-)
-
-PROFILE_FIELDS = (
-    "Selected release",
-    "Selected commit/content identity",
-    "Actually loaded identity",
-    "Product mode and objective",
-    "Current stage",
-    "Target stage",
-    "Vision identity",
-    "Current implementation identity",
-    "Current limits",
-    "Next transition trigger",
-    "Transition evidence required",
-    "Data preservation or lifecycle rule",
-    "Rollback/replacement path",
-    "User unit",
-    "Active period",
-    "Peak concurrent work or peak operation rate",
-    "Heavy operation",
-    "Data volume",
-    "Latency/reliability objective",
-    "Cost ceiling",
-    "Evidence source",
-    "Next measurement",
-    "GitHub host/repository",
-    "Runtime environment",
-    "Allowed parallelism",
-    "Actual dependencies",
-    "Transient runtime handoff location",
-    "Requested model/reasoning",
-    "Accepted native assignment",
-    "Independently verified runtime fact",
-    "Mode (`commercial`, `internal`, or `non-commercial`)",
-    "Current decision and investment boundary",
-    "Recalculation trigger",
-    "Unknown",
-)
+PROFILE_SECTION_FIELDS = {
+    "Process identity": (
+        "Selected release",
+        "Selected commit/content identity",
+        "Actually loaded identity",
+        "Identity state",
+    ),
+    "Product": (
+        "Product mode and objective",
+        "Target user and outcome",
+        "Communication language",
+        "Decision owner/coordinator",
+        "Current scope and non-goals",
+    ),
+    "Maturity": ("Current stage", "Target stage", "Stage outcome and exit need"),
+    "Architecture": (
+        "Vision identity",
+        "Current implementation identity",
+        "Current limits",
+        "Next transition trigger",
+        "Transition evidence required",
+        "Data preservation or lifecycle rule",
+        "Rollback/replacement path",
+    ),
+    "Load profile": (
+        "User unit",
+        "Active period",
+        "Peak concurrent work or peak operation rate",
+        "Heavy operation",
+        "Data volume",
+        "Latency/reliability objective",
+        "Cost ceiling",
+        "Evidence source",
+        "Next measurement",
+    ),
+    "Sources of truth": (
+        "Product/requirements identity",
+        "Journey/design identity",
+        "Architecture/decision identity",
+        "Risk/release identity",
+        "GitHub host/repository",
+    ),
+    "Runtime": (
+        "Runtime environment",
+        "Allowed parallelism",
+        "Actual dependencies",
+        "Transient runtime handoff location",
+    ),
+    "Models": (
+        "Requested model/reasoning",
+        "Accepted native assignment",
+        "Independently verified runtime fact",
+    ),
+    "Economics": (
+        "Mode (`commercial`, `internal`, or `non-commercial`)",
+        "Commercial assumptions and targets",
+        "Non-commercial budget/value constraint",
+        "Current decision and investment boundary",
+        "Recalculation trigger",
+    ),
+    "Applicability": (
+        "Gate/check",
+        "State",
+        "Current scope/stage",
+        "Evidence source and identity/date",
+        "Rationale",
+        "Owner/decision authority",
+        "Missing evidence or accepted limitation",
+        "Revisit trigger",
+        "Dependent transition",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -151,6 +175,53 @@ class InputError(ValueError):
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
+
+
+class StructuralInputFailure(Exception):
+    def __init__(self, relative_path: str):
+        super().__init__(relative_path)
+        self.relative_path = relative_path
+
+
+def _relative_evidence_path(root: Path, path: Path) -> str:
+    try:
+        return path.absolute().relative_to(root.absolute()).as_posix()
+    except ValueError:
+        return "structural input"
+
+
+def _read_path_text(root: Path, path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise StructuralInputFailure(_relative_evidence_path(root, path)) from exc
+
+
+def _read_path_bytes(root: Path, path: Path) -> bytes:
+    try:
+        return path.read_bytes()
+    except OSError as exc:
+        raise StructuralInputFailure(_relative_evidence_path(root, path)) from exc
+
+
+def prerequisite_safe(check_id: str):
+    def decorate(function):
+        @wraps(function)
+        def wrapped(root: Path, *args, **kwargs):
+            try:
+                return function(root, *args, **kwargs)
+            except StructuralInputFailure as exc:
+                return Check(
+                    check_id,
+                    "FAIL",
+                    f"required structural input is unreadable: {exc.relative_path}",
+                )
+            except (OSError, UnicodeError):
+                return Check(check_id, "FAIL", "required structural input is unreadable")
+
+        return wrapped
+
+    return decorate
 
 
 def resolve_root(path: Path) -> Path:
@@ -180,7 +251,10 @@ def _file_frame(root: Path, relative_path: str) -> tuple[bytes, bytes]:
     if path.is_symlink():
         return b"O", b""
     if path.is_file():
-        return b"F", path.read_bytes()
+        try:
+            return b"F", path.read_bytes()
+        except OSError:
+            return b"O", b""
     if path.exists():
         return b"O", b""
     return b"M", b""
@@ -221,16 +295,17 @@ def check_c02(root: Path) -> Check:
 
 
 def _read_text(root: Path, relative_path: str) -> str:
-    return (root / relative_path).read_text(encoding="utf-8")
+    return _read_path_text(root, root / relative_path)
 
 
+@prerequisite_safe("C01")
 def check_c01(root: Path) -> Check:
     manifest_path = root / "BASELINE.sha256"
     if manifest_path.is_symlink() or not manifest_path.is_file():
         return Check("C01", "FAIL", "baseline manifest missing or non-regular: BASELINE.sha256")
     records: dict[str, str] = {}
     malformed = False
-    for line in manifest_path.read_text(encoding="utf-8").splitlines():
+    for line in _read_path_text(root, manifest_path).splitlines():
         match = re.fullmatch(r"([0-9a-f]{64})  ([^\s]+)", line)
         if not match or match.group(2) in records:
             malformed = True
@@ -243,13 +318,14 @@ def check_c01(root: Path) -> Check:
         path = root / relative_path
         if path.is_symlink() or not path.is_file():
             mismatches.append(relative_path)
-        elif hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        elif hashlib.sha256(_read_path_bytes(root, path)).hexdigest() != expected:
             mismatches.append(relative_path)
     if mismatches:
         return Check("C01", "FAIL", f"baseline hash mismatch: {', '.join(mismatches)}")
     return Check("C01", "PASS", "baseline manifest: 7/7 matched")
 
 
+@prerequisite_safe("C03")
 def check_c03(root: Path) -> Check:
     active = root / "skills/product-development-workflow"
     failures = []
@@ -258,7 +334,7 @@ def check_c03(root: Path) -> Check:
         if path.is_symlink() or not path.is_file():
             continue
         relative_source = path.relative_to(root).as_posix()
-        for raw_destination in link_pattern.findall(path.read_text(encoding="utf-8")):
+        for raw_destination in link_pattern.findall(_read_path_text(root, path)):
             destination = raw_destination.strip()
             if destination.startswith("<") and destination.endswith(">"):
                 destination = destination[1:-1]
@@ -284,6 +360,7 @@ def check_c03(root: Path) -> Check:
     return Check("C03", "PASS", "active Markdown inline links resolve within the skill")
 
 
+@prerequisite_safe("C04")
 def check_c04(root: Path) -> Check:
     skill = _read_text(root, "skills/product-development-workflow/SKILL.md")
     metadata = _read_text(root, "skills/product-development-workflow/agents/openai.yaml")
@@ -301,6 +378,7 @@ def check_c04(root: Path) -> Check:
     return Check("C04", "PASS", "skill and UI metadata match the workflow contract")
 
 
+@prerequisite_safe("C05")
 def check_c05(root: Path) -> Check:
     lifecycle = _read_text(root, "skills/product-development-workflow/references/lifecycle.md")
     gates = re.findall(r"(?m)^## (\d+(?:\.\d+)?)\.", lifecycle)
@@ -310,6 +388,7 @@ def check_c05(root: Path) -> Check:
     return Check("C05", "PASS", "level-2 gate order matches the canonical sequence")
 
 
+@prerequisite_safe("C06")
 def check_c06(root: Path) -> Check:
     lifecycle = _read_text(root, "skills/product-development-workflow/references/lifecycle.md")
     skill = _read_text(root, "skills/product-development-workflow/SKILL.md")
@@ -325,6 +404,7 @@ def check_c06(root: Path) -> Check:
     return Check("C06", "PASS", "one light Gate 3.5 precedes Journey; no active Gate 4.5")
 
 
+@prerequisite_safe("C07")
 def check_c07(root: Path) -> Check:
     lifecycle = _read_text(root, "skills/product-development-workflow/references/lifecycle.md")
     skill = _read_text(root, "skills/product-development-workflow/SKILL.md")
@@ -335,11 +415,17 @@ def check_c07(root: Path) -> Check:
     return Check("C07", "PASS", "all five maturity stages are present in lifecycle and entry point")
 
 
+@prerequisite_safe("C08")
 def check_c08(root: Path) -> Check:
     profile = _read_text(root, "skills/product-development-workflow/assets/project-profile.template.md")
-    missing_sections = [name for name in PROFILE_SECTIONS if f"## {name}" not in profile]
-    missing_fields = [name for name in PROFILE_FIELDS if name not in profile]
-    if missing_sections or missing_fields:
+    missing = []
+    for section_name, fields in PROFILE_SECTION_FIELDS.items():
+        section = _markdown_section(profile, section_name)
+        if not section:
+            missing.append(section_name)
+            continue
+        missing.extend(f"{section_name}/{field}" for field in fields if field not in section)
+    if missing or "Unknown" not in profile:
         return Check("C08", "FAIL", "profile is missing required sections or decision-bearing fields")
     return Check("C08", "PASS", "profile includes required sections, fields, and Unknown defaults")
 
@@ -353,6 +439,7 @@ def _markdown_section(content: str, heading: str) -> str:
     return content[start:] if next_heading < 0 else content[start:next_heading]
 
 
+@prerequisite_safe("C09")
 def check_c09(root: Path) -> Check:
     templates = _read_text(root, "skills/product-development-workflow/assets/work-item-and-review-templates.md")
     work_package = _markdown_section(templates, "Work package / handoff")
@@ -435,13 +522,14 @@ def _private_binding_files(root: Path) -> list[Path]:
     return sorted(set(files), key=lambda path: path.relative_to(root).as_posix())
 
 
+@prerequisite_safe("C11")
 def check_c11(root: Path) -> Check:
     findings = []
     for path in _private_binding_files(root):
         if path.is_symlink() or not path.is_file():
             continue
         relative_path = path.relative_to(root).as_posix()
-        content = path.read_text(encoding="utf-8")
+        content = _read_path_text(root, path)
         for rule_name, pattern in PRIVATE_BINDING_RULES:
             if pattern.search(content):
                 findings.append(f"{rule_name}@{relative_path}")
@@ -461,16 +549,21 @@ def _operational_files(root: Path) -> list[Path]:
     return files
 
 
+@prerequisite_safe("C12")
 def check_c12(root: Path) -> Check:
     marker = re.compile(r"(?im)^\s*(?:[-*]\s*)?(?:TBD|TODO|FIXME|XXX|IMPLEMENT ME|FILL IN)\b")
     failures = []
     for path in _operational_files(root):
         if path.is_symlink() or not path.is_file():
             continue
-        if marker.search(path.read_text(encoding="utf-8")):
+        if marker.search(_read_path_text(root, path)):
             failures.append(path.relative_to(root).as_posix())
     if failures:
-        return Check("C12", "FAIL", f"placeholder marker found in: {', '.join(failures)}")
+        return Check(
+            "C12",
+            "FAIL",
+            f"placeholder marker found in: {', '.join(failures)}; {LIMITATION}",
+        )
     return Check("C12", "PASS", f"operational files contain no placeholder line markers; {LIMITATION}")
 
 
