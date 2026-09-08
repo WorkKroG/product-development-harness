@@ -12,9 +12,8 @@
 Обновлён 2026-09-06: добавлены согласованное поэтапное развитие архитектуры
 и лёгкая оценка целесообразности между Positioning и Journey.
 Владелец разрешил перенести пакет в отдельный проект и указал публичный репозиторий
-`WorkKroG/product-development-harness`. Текущий шаг — независимое review изменения имени,
-правил координации и подготовленного плана Module 3, затем приёмка плана в чате таска
-согласно [решениям](SPEC.md#6-модули-реализация-и-ревью).
+`WorkKroG/product-development-harness`. Module 3 интегрировал принятые правила координации;
+текущий кандидат Module 4 добавляет воспроизводимую структурную проверку C01–C12.
 Инструкции проекта: [AGENTS.md](AGENTS.md), состояние: [PROJECT_STATUS](docs/PROJECT_STATUS.md).
 
 ## Что читать
@@ -47,6 +46,32 @@
 python3 -m unittest tests.test_skill_contract -v
 ```
 
+Детерминированный структурный checker запускается с корнем пакета и предоставленным
+review-state:
+
+```bash
+python3 scripts/check_workflow.py \
+  --root . \
+  --review-state tests/fixtures/review-state/valid-final.json \
+  --json
+```
+
+Синтетические review-state файлы — только offline inputs. Checker строго проверяет фазовую
+схему PLAN, Change Review или FINAL и равенство `reviewed`/`current`, но не подтверждает
+происхождение данных из Git, GitHub, Codex, reviewer или назначенной модели.
+
+Результат содержит `revision`, упорядоченные `passed` и `failed`, а также двенадцать записей
+`checks` C01–C12 с относительным evidence. `revision` — вычисленная SHA-256 identity выбранного
+структурного содержимого; review-state и live/runtime state в неё не входят. Без `--json`
+выводится эквивалентный упорядоченный текстовый отчёт.
+
+- Exit `0`: C01–C12 прошли.
+- Exit `1`: входы корректны, но одна или несколько структурных проверок не прошли.
+- Exit `2`: аргументы или review-state непригодны; JSON post-parse error содержит пустое ядро
+  результата и стабильные `code`/`message`.
+
+Structural checks do not prove behavioral correctness.
+
 Неизменность исторической основы проверяется отдельно:
 
 ```bash
@@ -56,8 +81,8 @@ shasum -a 256 -c BASELINE.sha256
 ## Known limitations
 
 - Кандидат не установлен глобально и не проверен на чистой установке, обновлении или rollback.
-- Profile, runtime и dependency references уже входят в кандидат. Новая модель координации
-  согласована в спецификации; её активные инструкции, структурный checker и fixtures ещё предстоят.
+- Profile, runtime, dependency и coordination references уже входят в кандидат. Структурный
+  checker проверяет их форму, но не исполняет workflow и не подтверждает live-состояние.
 - E01–E41 и синтетический pilot QuietFollow ещё не выполнены; механический contract test
   не является поведенческим подтверждением.
 - GitHub workflow, публикация, push, merge и выпуск этим изменением не поддерживаются

@@ -1,0 +1,5 @@
+Synthetic private binding: /Users/example/Develop/Projects/recipes-v1
+Synthetic repository binding: WorkKroG/recipes-v1
+Synthetic task identity: 11111111-2222-3333-4444-555555555555
+Synthetic credential prefix: ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Synthetic provisional identity: client-new-thread:synthetic-only
