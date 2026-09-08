@@ -98,6 +98,28 @@ class WorkflowCheckerCoreTest(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertRegex(first, r"^sha256:[0-9a-f]{64}$")
 
+    def test_revision_frames_leaf_and_ancestor_symlinks_as_nonregular(self):
+        outside = Path(self.tempdir.name) / "outside"
+        outside.mkdir()
+        (outside / "README.md").write_bytes(b"outside")
+
+        leaf = self.root / "README.md"
+        leaf.symlink_to(outside / "README.md")
+        self.assertEqual((b"O", b""), self.checker._file_frame(self.root, "README.md"))
+        leaf.unlink()
+
+        (outside / "skills").mkdir()
+        external_skill = outside / "skills/product-development-workflow/SKILL.md"
+        external_skill.parent.mkdir(parents=True)
+        external_skill.write_bytes(b"outside")
+        (self.root / "skills").symlink_to(outside / "skills", target_is_directory=True)
+        self.assertEqual(
+            (b"O", b""),
+            self.checker._file_frame(
+                self.root, "skills/product-development-workflow/SKILL.md"
+            ),
+        )
+
     def test_c02_reports_only_relative_missing_paths(self):
         for relative_path in self.checker.REQUIRED_ACTIVE_FILES:
             if relative_path != "scripts/check_workflow.py":
@@ -110,6 +132,19 @@ class WorkflowCheckerCoreTest(unittest.TestCase):
             self.checker.compute_revision(self.root),
             self.checker.compute_revision(self.root),
         )
+
+    def test_c02_rejects_required_paths_through_a_symlink_ancestor(self):
+        for relative_path in self.checker.REQUIRED_ACTIVE_FILES:
+            self.write(relative_path)
+        outside_skills = Path(self.tempdir.name) / "outside-skills"
+        (self.root / "skills").rename(outside_skills)
+        (self.root / "skills").symlink_to(outside_skills, target_is_directory=True)
+
+        check = self.checker.check_c02(self.root)
+
+        self.assertEqual(("C02", "FAIL"), (check.id, check.status))
+        self.assertIn("skills/product-development-workflow/SKILL.md", check.evidence)
+        self.assertNotIn(str(outside_skills), check.evidence)
 
     def test_renderers_preserve_order_and_four_field_json(self):
         checks = (
@@ -194,6 +229,15 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
         self.mutate(skill, "references/lifecycle.md?view=1#top", "references/missing.md?view=1#top")
         self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
 
+    def test_c03_rejects_a_local_link_to_a_symlinked_leaf(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[linked](references/linked.md)\n")
+        linked = self.root / "skills/product-development-workflow/references/linked.md"
+        linked.symlink_to(linked.parent / "lifecycle.md")
+
+        self.assert_check(self.checker.check_c03(self.root.resolve()), "C03", "FAIL")
+
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
         self.mutate(
@@ -202,6 +246,28 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
             'display_name: "Wrong Workflow"',
         )
         self.assert_check(self.checker.check_c04(self.root), "C04", "FAIL")
+
+    def test_c04_rejects_empty_quoted_description_scalars(self):
+        cases = (
+            (
+                "skills/product-development-workflow/SKILL.md",
+                "description: Guide a digital product through evidence-based discovery, staged implementation, verification, release, and learning in Codex. Use when starting, resuming, auditing, or preparing a product, module, or release while preserving existing evidence and selecting the next incomplete gate.",
+                'description: ""',
+            ),
+            (
+                "skills/product-development-workflow/agents/openai.yaml",
+                'short_description: "Guide staged product work through evidence-based gates"',
+                'short_description: ""',
+            ),
+        )
+        for relative_path, old, new in cases:
+            with self.subTest(relative_path=relative_path):
+                path = self.root / relative_path
+                original = path.read_text(encoding="utf-8")
+                self.assertIn(old, original)
+                path.write_text(original.replace(old, new, 1), encoding="utf-8")
+                self.assert_check(self.checker.check_c04(self.root), "C04", "FAIL")
+                path.write_text(original, encoding="utf-8")
 
     def test_c05_detects_changed_gate_order(self):
         self.assert_check(self.checker.check_c05(self.root), "C05", "PASS")
@@ -503,6 +569,18 @@ class WorkflowPrivateBindingTest(unittest.TestCase):
             self.assertNotIn(leak, check.evidence)
         self.assertNotIn(str(self.root), check.evidence)
 
+    def test_c11_does_not_traverse_a_symlinked_active_ancestor(self):
+        outside_skills = Path(self.tempdir.name) / "outside-skills"
+        (self.root / "skills").rename(outside_skills)
+        leak = outside_skills / "product-development-workflow/references/leak.md"
+        leak.write_text("\n".join(self.leak_lines), encoding="utf-8")
+        (self.root / "skills").symlink_to(outside_skills, target_is_directory=True)
+
+        check = self.checker.check_c11(self.root)
+
+        self.assertEqual(("C11", "PASS"), (check.id, check.status))
+        self.assertNotIn(str(outside_skills), check.evidence)
+
 
 class WorkflowCheckerCliTest(unittest.TestCase):
     def setUp(self):
@@ -570,6 +648,26 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         for leak in leak_lines:
             self.assertNotIn(leak, result.stdout)
 
+    def test_malformed_inline_destination_returns_a_complete_c03_failure(self):
+        active = self.root / "skills/product-development-workflow/SKILL.md"
+        with active.open("a", encoding="utf-8") as stream:
+            stream.write("\n[broken](//[)\n")
+
+        result = run_checker(self.root, self.valid_state)
+
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(12, len(payload["checks"]))
+        self.assertEqual(
+            [f"C{number:02d}" for number in range(1, 13)],
+            [check["id"] for check in payload["checks"]],
+        )
+        self.assertIn("C03", payload["failed"])
+        c03 = next(check for check in payload["checks"] if check["id"] == "C03")
+        self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
+        self.assertNotIn(str(self.root), result.stdout)
+
     def test_c12_failure_json_still_ends_with_the_mandatory_limitation(self):
         active = self.root / "skills/product-development-workflow/references/lifecycle.md"
         with active.open("a", encoding="utf-8") as stream:
@@ -584,6 +682,24 @@ class WorkflowCheckerCliTest(unittest.TestCase):
                 "Structural checks do not prove behavioral correctness."
             )
         )
+
+    def test_c12_unreadable_input_still_ends_with_the_mandatory_limitation(self):
+        (self.root / "README.md").write_bytes(b"\xff")
+
+        result = run_checker(self.root, self.valid_state)
+
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(12, len(payload["checks"]))
+        c12 = next(check for check in payload["checks"] if check["id"] == "C12")
+        self.assertEqual("FAIL", c12["status"])
+        self.assertTrue(
+            c12["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
+        self.assertNotIn(str(self.root), result.stdout)
 
     def test_incomplete_review_state_is_post_parse_exit_two_with_empty_core(self):
         result = run_checker(self.root, "tests/fixtures/invalid/incomplete-review-state.json")

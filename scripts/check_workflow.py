@@ -190,7 +190,30 @@ def _relative_evidence_path(root: Path, path: Path) -> str:
         return "structural input"
 
 
+def _has_symlink_component(root: Path, path: Path) -> bool:
+    try:
+        relative = path.absolute().relative_to(root.absolute())
+    except ValueError:
+        return True
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
+
+
+def _is_bounded_regular_file(root: Path, path: Path) -> bool:
+    return not _has_symlink_component(root, path) and path.is_file()
+
+
+def _is_bounded_directory(root: Path, path: Path) -> bool:
+    return not _has_symlink_component(root, path) and path.is_dir()
+
+
 def _read_path_text(root: Path, path: Path) -> str:
+    if not _is_bounded_regular_file(root, path):
+        raise StructuralInputFailure(_relative_evidence_path(root, path))
     try:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
@@ -198,6 +221,8 @@ def _read_path_text(root: Path, path: Path) -> str:
 
 
 def _read_path_bytes(root: Path, path: Path) -> bytes:
+    if not _is_bounded_regular_file(root, path):
+        raise StructuralInputFailure(_relative_evidence_path(root, path))
     try:
         return path.read_bytes()
     except OSError as exc:
@@ -205,19 +230,22 @@ def _read_path_bytes(root: Path, path: Path) -> bytes:
 
 
 def prerequisite_safe(check_id: str):
+    def failure(evidence: str) -> Check:
+        if check_id == "C12":
+            evidence = f"{evidence}; {LIMITATION}"
+        return Check(check_id, "FAIL", evidence)
+
     def decorate(function):
         @wraps(function)
         def wrapped(root: Path, *args, **kwargs):
             try:
                 return function(root, *args, **kwargs)
             except StructuralInputFailure as exc:
-                return Check(
-                    check_id,
-                    "FAIL",
-                    f"required structural input is unreadable: {exc.relative_path}",
+                return failure(
+                    f"required structural input is unreadable: {exc.relative_path}"
                 )
             except (OSError, UnicodeError):
-                return Check(check_id, "FAIL", "required structural input is unreadable")
+                return failure("required structural input is unreadable")
 
         return wrapped
 
@@ -248,9 +276,7 @@ def resolve_review_state(root: Path, path: Path) -> Path:
 
 def _file_frame(root: Path, relative_path: str) -> tuple[bytes, bytes]:
     path = root / relative_path
-    if path.is_symlink():
-        return b"O", b""
-    if path.is_file():
+    if _is_bounded_regular_file(root, path):
         try:
             return b"F", path.read_bytes()
         except OSError:
@@ -283,7 +309,7 @@ def check_c02(root: Path) -> Check:
     missing = []
     for relative_path in REQUIRED_ACTIVE_FILES:
         path = root / relative_path
-        if path.is_symlink() or not path.is_file():
+        if not _is_bounded_regular_file(root, path):
             missing.append(relative_path)
     if missing:
         return Check("C02", "FAIL", f"missing or non-regular: {', '.join(missing)}")
@@ -301,7 +327,7 @@ def _read_text(root: Path, relative_path: str) -> str:
 @prerequisite_safe("C01")
 def check_c01(root: Path) -> Check:
     manifest_path = root / "BASELINE.sha256"
-    if manifest_path.is_symlink() or not manifest_path.is_file():
+    if not _is_bounded_regular_file(root, manifest_path):
         return Check("C01", "FAIL", "baseline manifest missing or non-regular: BASELINE.sha256")
     records: dict[str, str] = {}
     malformed = False
@@ -316,7 +342,7 @@ def check_c01(root: Path) -> Check:
     mismatches = []
     for relative_path, expected in records.items():
         path = root / relative_path
-        if path.is_symlink() or not path.is_file():
+        if not _is_bounded_regular_file(root, path):
             mismatches.append(relative_path)
         elif hashlib.sha256(_read_path_bytes(root, path)).hexdigest() != expected:
             mismatches.append(relative_path)
@@ -330,8 +356,9 @@ def check_c03(root: Path) -> Check:
     active = root / "skills/product-development-workflow"
     failures = []
     link_pattern = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
-    for path in sorted(active.rglob("*.md")):
-        if path.is_symlink() or not path.is_file():
+    paths = active.rglob("*.md") if _is_bounded_directory(root, active) else ()
+    for path in sorted(paths):
+        if not _is_bounded_regular_file(root, path):
             continue
         relative_source = path.relative_to(root).as_posix()
         for raw_destination in link_pattern.findall(_read_path_text(root, path)):
@@ -340,20 +367,28 @@ def check_c03(root: Path) -> Check:
                 destination = destination[1:-1]
             else:
                 destination = destination.split(maxsplit=1)[0]
-            parsed = urlsplit(destination)
+            try:
+                parsed = urlsplit(destination)
+            except ValueError:
+                failures.append(relative_source)
+                continue
             if parsed.scheme in {"http", "https", "mailto"} or not parsed.path:
                 continue
             target_text = parsed.path
             if target_text.startswith("/"):
                 failures.append(relative_source)
                 continue
-            target = (path.parent / target_text).resolve()
+            target = path.parent / target_text
+            if _has_symlink_component(root, target):
+                failures.append(relative_source)
+                continue
+            resolved_target = target.resolve()
             try:
-                target.relative_to(active.resolve())
+                resolved_target.relative_to(active.resolve())
             except ValueError:
                 failures.append(relative_source)
                 continue
-            if target.is_symlink() or not target.is_file():
+            if not resolved_target.is_file():
                 failures.append(relative_source)
     if failures:
         return Check("C03", "FAIL", f"invalid local link in: {', '.join(sorted(set(failures)))}")
@@ -365,17 +400,38 @@ def check_c04(root: Path) -> Check:
     skill = _read_text(root, "skills/product-development-workflow/SKILL.md")
     metadata = _read_text(root, "skills/product-development-workflow/agents/openai.yaml")
     frontmatter = skill.split("---", 2)
-    valid_skill = len(frontmatter) == 3 and re.search(
-        r"(?m)^name:\s*product-development-workflow\s*$", frontmatter[1]
-    ) and re.search(r"(?m)^description:\s*\S.+$", frontmatter[1])
+    skill_metadata = frontmatter[1] if len(frontmatter) == 3 else ""
+    valid_skill = (
+        _metadata_scalar(skill_metadata, "name") == "product-development-workflow"
+        and _metadata_scalar(skill_metadata, "description") is not None
+    )
+    default_prompt = _metadata_scalar(metadata, "default_prompt")
     valid_metadata = (
-        'display_name: "Product Development Workflow"' in metadata
-        and re.search(r"(?m)^\s*short_description:\s*\S.+$", metadata)
-        and re.search(r"(?m)^\s*default_prompt:.*\$product-development-workflow", metadata)
+        _metadata_scalar(metadata, "display_name") == "Product Development Workflow"
+        and _metadata_scalar(metadata, "short_description") is not None
+        and default_prompt is not None
+        and "$product-development-workflow" in default_prompt
     )
     if not (valid_skill and valid_metadata):
         return Check("C04", "FAIL", "skill or UI metadata does not match the workflow contract")
     return Check("C04", "PASS", "skill and UI metadata match the workflow contract")
+
+
+def _metadata_scalar(content: str, key: str) -> str | None:
+    values = re.findall(
+        rf"(?m)^[ \t]*{re.escape(key)}:[ \t]*([^\r\n]*)$",
+        content,
+    )
+    if len(values) != 1:
+        return None
+    raw = values[0].strip()
+    if not raw:
+        return None
+    if raw[0] in {'"', "'"}:
+        if len(raw) < 2 or raw[-1] != raw[0]:
+            return None
+        raw = raw[1:-1].strip()
+    return raw or None
 
 
 @prerequisite_safe("C05")
@@ -513,8 +569,9 @@ PRIVATE_BINDING_RULES = (
 def _private_binding_files(root: Path) -> list[Path]:
     active = root / "skills/product-development-workflow"
     files = []
-    for suffix in ("*.md", "*.yaml"):
-        files.extend(active.rglob(suffix))
+    if _is_bounded_directory(root, active):
+        for suffix in ("*.md", "*.yaml"):
+            files.extend(active.rglob(suffix))
     files.extend(root / relative for relative in ("README.md", "CHANGELOG.md", "docs/PROJECT_STATUS.md"))
     validation = root / "docs/validation.md"
     if validation.exists() or validation.is_symlink():
@@ -526,7 +583,7 @@ def _private_binding_files(root: Path) -> list[Path]:
 def check_c11(root: Path) -> Check:
     findings = []
     for path in _private_binding_files(root):
-        if path.is_symlink() or not path.is_file():
+        if not _is_bounded_regular_file(root, path):
             continue
         relative_path = path.relative_to(root).as_posix()
         content = _read_path_text(root, path)
@@ -541,7 +598,9 @@ def check_c11(root: Path) -> Check:
 def _operational_files(root: Path) -> list[Path]:
     active = root / "skills/product-development-workflow"
     files = [active / "SKILL.md", active / "agents/openai.yaml"]
-    files.extend(sorted((active / "references").glob("*")))
+    references = active / "references"
+    if _is_bounded_directory(root, references):
+        files.extend(sorted(references.glob("*")))
     files.extend(root / relative for relative in ("README.md", "CHANGELOG.md", "docs/PROJECT_STATUS.md"))
     validation = root / "docs/validation.md"
     if validation.exists() or validation.is_symlink():
@@ -554,7 +613,7 @@ def check_c12(root: Path) -> Check:
     marker = re.compile(r"(?im)^\s*(?:[-*]\s*)?(?:TBD|TODO|FIXME|XXX|IMPLEMENT ME|FILL IN)\b")
     failures = []
     for path in _operational_files(root):
-        if path.is_symlink() or not path.is_file():
+        if not _is_bounded_regular_file(root, path):
             continue
         if marker.search(_read_path_text(root, path)):
             failures.append(path.relative_to(root).as_posix())
