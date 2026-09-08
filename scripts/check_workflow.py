@@ -276,6 +276,8 @@ def resolve_review_state(root: Path, path: Path) -> Path:
 
 def _file_frame(root: Path, relative_path: str) -> tuple[bytes, bytes]:
     path = root / relative_path
+    if _has_symlink_component(root, path):
+        return b"O", b""
     if _is_bounded_regular_file(root, path):
         try:
             return b"F", path.read_bytes()

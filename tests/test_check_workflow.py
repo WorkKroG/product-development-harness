@@ -120,6 +120,36 @@ class WorkflowCheckerCoreTest(unittest.TestCase):
             ),
         )
 
+    def test_dangling_leaf_symlink_revision_is_external_state_invariant(self):
+        outside_target = Path(self.tempdir.name) / "outside/README.md"
+        (self.root / "README.md").symlink_to(outside_target)
+
+        before = self.checker.compute_revision(self.root)
+        self.assertEqual((b"O", b""), self.checker._file_frame(self.root, "README.md"))
+
+        outside_target.parent.mkdir()
+        outside_target.write_bytes(b"appeared outside")
+        self.assertEqual((b"O", b""), self.checker._file_frame(self.root, "README.md"))
+        self.assertEqual(before, self.checker.compute_revision(self.root))
+
+    def test_dangling_ancestor_symlink_revision_is_external_state_invariant(self):
+        outside_skills = Path(self.tempdir.name) / "outside-skills"
+        (self.root / "skills").symlink_to(outside_skills, target_is_directory=True)
+        relative_path = "skills/product-development-workflow/SKILL.md"
+
+        before = self.checker.compute_revision(self.root)
+        self.assertEqual(
+            (b"O", b""), self.checker._file_frame(self.root, relative_path)
+        )
+
+        external_skill = outside_skills / "product-development-workflow/SKILL.md"
+        external_skill.parent.mkdir(parents=True)
+        external_skill.write_bytes(b"appeared outside")
+        self.assertEqual(
+            (b"O", b""), self.checker._file_frame(self.root, relative_path)
+        )
+        self.assertEqual(before, self.checker.compute_revision(self.root))
+
     def test_c02_reports_only_relative_missing_paths(self):
         for relative_path in self.checker.REQUIRED_ACTIVE_FILES:
             if relative_path != "scripts/check_workflow.py":
