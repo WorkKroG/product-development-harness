@@ -150,6 +150,23 @@ class WorkflowCheckerCoreTest(unittest.TestCase):
         )
         self.assertEqual(before, self.checker.compute_revision(self.root))
 
+    def test_optional_validation_through_dangling_ancestor_is_external_state_invariant(self):
+        outside_docs = Path(self.tempdir.name) / "outside-docs"
+        (self.root / "docs").symlink_to(outside_docs, target_is_directory=True)
+        relative_path = "docs/validation.md"
+
+        before = self.checker.compute_revision(self.root)
+        self.assertEqual(
+            (b"O", b""), self.checker._file_frame(self.root, relative_path)
+        )
+
+        outside_docs.mkdir()
+        (outside_docs / "validation.md").write_bytes(b"appeared outside")
+        self.assertEqual(
+            (b"O", b""), self.checker._file_frame(self.root, relative_path)
+        )
+        self.assertEqual(before, self.checker.compute_revision(self.root))
+
     def test_c02_reports_only_relative_missing_paths(self):
         for relative_path in self.checker.REQUIRED_ACTIVE_FILES:
             if relative_path != "scripts/check_workflow.py":

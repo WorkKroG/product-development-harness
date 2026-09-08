@@ -291,7 +291,7 @@ def _file_frame(root: Path, relative_path: str) -> tuple[bytes, bytes]:
 def compute_revision(root: Path) -> str:
     paths = set(REVISION_PATHS)
     validation = root / "docs/validation.md"
-    if validation.exists() or validation.is_symlink():
+    if _has_symlink_component(root, validation) or validation.exists():
         paths.add("docs/validation.md")
 
     digest = hashlib.sha256()
