@@ -375,11 +375,11 @@ def check_c03(root: Path) -> Check:
                 failures.append(relative_source)
                 continue
             fragment_only = (
-                not parsed.scheme
+                destination.startswith("#")
+                and not parsed.scheme
                 and not parsed.netloc
                 and not parsed.path
                 and not parsed.query
-                and bool(parsed.fragment)
             )
             if parsed.scheme in {"http", "https", "mailto"} or fragment_only:
                 continue

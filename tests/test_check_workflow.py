@@ -298,6 +298,13 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
 
         self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
 
+    def test_c03_accepts_an_empty_fragment_reference(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[top](#)\n")
+
+        self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
         self.mutate(
