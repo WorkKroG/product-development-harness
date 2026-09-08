@@ -374,7 +374,14 @@ def check_c03(root: Path) -> Check:
             except ValueError:
                 failures.append(relative_source)
                 continue
-            if parsed.scheme in {"http", "https", "mailto"} or not parsed.path:
+            fragment_only = (
+                not parsed.scheme
+                and not parsed.netloc
+                and not parsed.path
+                and not parsed.query
+                and bool(parsed.fragment)
+            )
+            if parsed.scheme in {"http", "https", "mailto"} or fragment_only:
                 continue
             target_text = parsed.path
             if target_text.startswith("/"):

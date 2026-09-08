@@ -285,6 +285,19 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
 
         self.assert_check(self.checker.check_c03(self.root.resolve()), "C03", "FAIL")
 
+    def test_c03_rejects_a_network_path_destination(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[http](http://example.invalid)\n")
+            stream.write("[https](https://example.invalid)\n")
+            stream.write("[mail](mailto:owner@example.invalid)\n")
+            stream.write("[section](#fragment)\n")
+        self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[external](//example.invalid)\n")
+
+        self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
         self.mutate(
@@ -714,6 +727,26 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         c03 = next(check for check in payload["checks"] if check["id"] == "C03")
         self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
         self.assertNotIn(str(self.root), result.stdout)
+
+    def test_network_path_destination_returns_a_complete_c03_json_failure(self):
+        active = self.root / "skills/product-development-workflow/SKILL.md"
+        with active.open("a", encoding="utf-8") as stream:
+            stream.write("\n[external](//example.invalid)\n")
+
+        result = run_checker(self.root, self.valid_state)
+
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(12, len(payload["checks"]))
+        self.assertEqual(["C03"], payload["failed"])
+        c03 = next(check for check in payload["checks"] if check["id"] == "C03")
+        self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
+        self.assertTrue(
+            payload["checks"][-1]["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
 
     def test_c12_failure_json_still_ends_with_the_mandatory_limitation(self):
         active = self.root / "skills/product-development-workflow/references/lifecycle.md"
