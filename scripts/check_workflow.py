@@ -353,33 +353,68 @@ def check_c01(root: Path) -> Check:
     return Check("C01", "PASS", "baseline manifest: 7/7 matched")
 
 
+def _extract_inline_destinations(content: str) -> list[str | None]:
+    candidates: list[str | None] = []
+    link_start = re.compile(r"(?<!!)\[[^\[\]\r\n]*\]\(")
+    for line in content.splitlines():
+        for match in link_start.finditer(line):
+            cursor = match.end()
+            while cursor < len(line) and line[cursor] in " \t":
+                cursor += 1
+
+            if cursor < len(line) and line[cursor] == "<":
+                angle_end = line.find(">", cursor + 1)
+                if angle_end < 0:
+                    candidates.append(None)
+                    continue
+                destination = line[cursor + 1 : angle_end]
+                cursor = angle_end + 1
+            else:
+                destination_start = cursor
+                while cursor < len(line) and line[cursor] not in " \t)":
+                    cursor += 1
+                destination = line[destination_start:cursor]
+
+            if any(ord(character) < 32 or ord(character) == 127 for character in destination):
+                candidates.append(None)
+                continue
+
+            suffix_start = cursor
+            while cursor < len(line) and line[cursor] in " \t":
+                cursor += 1
+            if cursor < len(line) and line[cursor] == ")":
+                candidates.append(destination)
+                continue
+            if cursor == suffix_start or cursor >= len(line) or line[cursor] not in {'"', "'"}:
+                candidates.append(None)
+                continue
+
+            quote = line[cursor]
+            title_start = cursor + 1
+            title_end = line.find(quote, title_start)
+            if title_end < 0 or any(
+                ord(character) < 32 or ord(character) == 127
+                for character in line[title_start:title_end]
+            ):
+                candidates.append(None)
+                continue
+            cursor = title_end + 1
+            while cursor < len(line) and line[cursor] in " \t":
+                cursor += 1
+            candidates.append(destination if cursor < len(line) and line[cursor] == ")" else None)
+    return candidates
+
+
 @prerequisite_safe("C03")
 def check_c03(root: Path) -> Check:
     active = root / "skills/product-development-workflow"
     failures = []
-    link_pattern = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]*)\)")
     paths = active.rglob("*.md") if _is_bounded_directory(root, active) else ()
     for path in sorted(paths):
         if not _is_bounded_regular_file(root, path):
             continue
         relative_source = path.relative_to(root).as_posix()
-        for raw_destination in link_pattern.findall(_read_path_text(root, path)):
-            destination = raw_destination.strip()
-            if destination.startswith("<"):
-                angle_end = destination.find(">")
-                remainder = destination[angle_end + 1 :] if angle_end >= 0 else ""
-                title = remainder.strip()
-                quoted_title = (
-                    len(title) >= 2
-                    and title[0] == title[-1]
-                    and title[0] in {'"', "'"}
-                )
-                if angle_end >= 0 and (not remainder or remainder[0].isspace()) and (
-                    not title or quoted_title
-                ):
-                    destination = destination[1:angle_end]
-            elif destination:
-                destination = destination.split(maxsplit=1)[0]
+        for destination in _extract_inline_destinations(_read_path_text(root, path)):
             if not destination:
                 failures.append(relative_source)
                 continue

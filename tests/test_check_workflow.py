@@ -261,6 +261,11 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
         self.assertEqual(expected_status, check.status)
         self.assertNotIn(str(self.root), check.evidence)
 
+    def fresh_c03_root(self, case_name: str) -> Path:
+        case_root = Path(self.tempdir.name) / case_name
+        shutil.copytree(self.root, case_root)
+        return case_root
+
     def test_c01_detects_a_changed_baseline_byte(self):
         self.assert_check(self.checker.check_c01(self.root), "C01", "PASS")
         path = self.root / "baseline/product-development-cycle/SKILL.md"
@@ -404,6 +409,150 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
             with self.subTest(markdown):
                 skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
                 self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
+    def test_c03_empty_labels_validate_each_destination_class(self):
+        cases = (
+            ("existing", "[](references/lifecycle.md)", "PASS"),
+            ("missing", "[](references/missing.md)", "FAIL"),
+            ("empty", "[]()", "FAIL"),
+            ("whitespace", "[](   )", "FAIL"),
+            ("angle-empty", "[](<>)", "FAIL"),
+            ("allowed", "[](HTTP://example.invalid/path)", "PASS"),
+            ("unsupported", "[](madeup:references/lifecycle.md)", "FAIL"),
+            ("fragment", "[](#section)", "PASS"),
+            ("query-only", "[](?view=1)", "FAIL"),
+            ("authority", "[](//example.invalid/path)", "FAIL"),
+            ("malformed", "[](//[)", "FAIL"),
+        )
+        for case_name, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_c03_does_not_cross_labels_or_treat_images_as_links(self):
+        cases = (
+            ("isolated-image", "![image](references/missing.md)", "PASS"),
+            ("literal-bracket-image", "literal [ ![image](references/missing.md)", "PASS"),
+            (
+                "adjacent-image-link",
+                "![image](references/missing.md)[](references/missing.md)",
+                "FAIL",
+            ),
+        )
+        for case_name, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_c03_preserves_parentheses_in_angle_destinations_and_titles(self):
+        cases = (
+            ("title-paren", '[local](<references/lifecycle.md> "title ) stays")'),
+            ("destination-paren", '[local](<references/right).md> "title")'),
+            ("plain-title-paren", '[local](references/lifecycle.md "title ) stays")'),
+        )
+        for case_name, markdown in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                target = case_root / "skills/product-development-workflow/references/right).md"
+                target.write_text("fixture\n", encoding="utf-8")
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", "PASS")
+
+    def test_c03_malformed_suffixes_and_control_destinations_fail_closed(self):
+        cases = (
+            ("plain-suffix", "[bad](references/lifecycle.md suffix)"),
+            ("plain-title", '[bad](references/lifecycle.md "unterminated)'),
+            ("angle-suffix", "[bad](<references/lifecycle.md> suffix)"),
+            ("angle-title", '[bad](<references/lifecycle.md> "unterminated)'),
+            ("allowed-control", "[bad](http://example.invalid/\x01)"),
+        )
+        for case_name, markdown in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", "FAIL")
+
+    def test_c03_empty_label_wrappers_reach_local_classification(self):
+        cases = (
+            (
+                "plain-double-title",
+                '[](references/lifecycle.md "title")',
+                '[](references/missing.md "title")',
+            ),
+            (
+                "plain-single-title",
+                "[](references/lifecycle.md 'title')",
+                "[](references/missing.md 'title')",
+            ),
+            ("angle", "[](<references/lifecycle.md>)", "[](<references/missing.md>)"),
+            (
+                "angle-double-title",
+                '[](<references/lifecycle.md> "title ) stays")',
+                '[](<references/missing.md> "title ) stays")',
+            ),
+            (
+                "angle-single-title",
+                "[](<references/lifecycle.md> 'title')",
+                "[](<references/missing.md> 'title')",
+            ),
+        )
+        for case_name, valid, missing in cases:
+            with self.subTest(case_name, state="valid"):
+                valid_root = self.fresh_c03_root(f"{case_name}-valid")
+                skill = valid_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{valid}\n")
+                self.assert_check(self.checker.check_c03(valid_root), "C03", "PASS")
+            with self.subTest(case_name, state="missing"):
+                missing_root = self.fresh_c03_root(f"{case_name}-missing")
+                skill = missing_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{missing}\n")
+                self.assert_check(self.checker.check_c03(missing_root), "C03", "FAIL")
+
+    def test_c03_empty_label_spaced_angle_target_reaches_classification(self):
+        valid_root = self.fresh_c03_root("spaced-valid")
+        target = valid_root / "skills/product-development-workflow/references/space target.md"
+        target.write_text("fixture\n", encoding="utf-8")
+        skill = valid_root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write('\n[](<references/space target.md> "title")\n')
+        self.assert_check(self.checker.check_c03(valid_root), "C03", "PASS")
+
+        missing_root = self.fresh_c03_root("spaced-missing")
+        skill = missing_root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write('\n[](<references/missing target.md> "title")\n')
+        self.assert_check(self.checker.check_c03(missing_root), "C03", "FAIL")
+
+    def test_c03_adjacent_and_repeated_links_each_reach_classification(self):
+        valid_root = self.fresh_c03_root("adjacent-valid")
+        skill = valid_root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write(
+                "\n[](references/lifecycle.md)[named](references/lifecycle.md)"
+                '[](references/lifecycle.md "title")\n'
+            )
+        self.assert_check(self.checker.check_c03(valid_root), "C03", "PASS")
+
+        missing_root = self.fresh_c03_root("adjacent-missing")
+        skill = missing_root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write(
+                "\n[](references/lifecycle.md)[named](references/lifecycle.md)"
+                "[](references/missing.md)\n"
+            )
+        self.assert_check(self.checker.check_c03(missing_root), "C03", "FAIL")
 
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
@@ -763,6 +912,11 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         )
         self.valid_state = "tests/fixtures/review-state/valid-final.json"
 
+    def fresh_c03_root(self, case_name: str) -> Path:
+        case_root = Path(self.tempdir.name) / case_name
+        shutil.copytree(self.root, case_root)
+        return case_root
+
     def test_json_success_has_exact_core_shape_order_and_limitation(self):
         result = run_checker(self.root, self.valid_state)
         self.assertEqual(0, result.returncode, result.stderr or result.stdout)
@@ -908,6 +1062,41 @@ class WorkflowCheckerCliTest(unittest.TestCase):
                 "Structural checks do not prove behavioral correctness."
             )
         )
+
+    def test_empty_label_failures_return_complete_c03_json(self):
+        cases = (
+            ("missing", "[](references/missing.md)"),
+            ("empty", "[]()"),
+            ("unsupported", "[](madeup:references/lifecycle.md)"),
+            ("authority", "[](//example.invalid/path)"),
+            ("malformed", "[](//[)"),
+        )
+        for case_name, markdown in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                active = case_root / "skills/product-development-workflow/SKILL.md"
+                with active.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+
+                result = run_checker(case_root, self.valid_state)
+
+                self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+                self.assertEqual("", result.stderr)
+                payload = json.loads(result.stdout)
+                self.assertEqual(12, len(payload["checks"]))
+                self.assertEqual(
+                    [f"C{number:02d}" for number in range(1, 13)],
+                    [check["id"] for check in payload["checks"]],
+                )
+                self.assertEqual(["C03"], payload["failed"])
+                c03 = next(check for check in payload["checks"] if check["id"] == "C03")
+                self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
+                self.assertNotIn(str(case_root), result.stdout)
+                self.assertTrue(
+                    payload["checks"][-1]["evidence"].endswith(
+                        "Structural checks do not prove behavioral correctness."
+                    )
+                )
 
     def test_c12_failure_json_still_ends_with_the_mandatory_limitation(self):
         active = self.root / "skills/product-development-workflow/references/lifecycle.md"
