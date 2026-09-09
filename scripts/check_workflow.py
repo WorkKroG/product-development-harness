@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 import struct
 import sys
-from typing import Sequence
+from typing import Literal, Sequence
 from urllib.parse import urlsplit
 
 
@@ -353,63 +353,151 @@ def check_c01(root: Path) -> Check:
     return Check("C01", "PASS", "baseline manifest: 7/7 matched")
 
 
-def _extract_inline_destinations(content: str) -> list[str | None]:
-    candidates: list[str | None] = []
-    link_start = re.compile(r"(?<!!)\[[^\[\]\r\n]*\]\(")
-    for line in content.splitlines():
-        search_position = 0
-        while match := link_start.search(line, search_position):
-            search_position = match.end()
-            cursor = match.end()
-            while cursor < len(line) and line[cursor] in " \t":
-                cursor += 1
+@dataclass(frozen=True)
+class InlineConstruct:
+    kind: Literal["link", "image", "invalid"]
+    destination: str | None
 
-            if cursor < len(line) and line[cursor] == "<":
-                angle_end = line.find(">", cursor + 1)
-                if angle_end < 0:
-                    candidates.append(None)
-                    continue
-                destination = line[cursor + 1 : angle_end]
-                cursor = angle_end + 1
-            else:
-                destination_start = cursor
-                while cursor < len(line) and line[cursor] not in " \t)":
-                    cursor += 1
-                destination = line[destination_start:cursor]
 
-            if any(ord(character) < 32 or ord(character) == 127 for character in destination):
-                candidates.append(None)
-                continue
+def _is_escaped_opener(line: str, start: int) -> bool:
+    backslashes = 0
+    cursor = start - 1
+    while cursor >= 0 and line[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 1
 
-            suffix_start = cursor
-            while cursor < len(line) and line[cursor] in " \t":
-                cursor += 1
-            if cursor < len(line) and line[cursor] == ")":
-                candidates.append(destination)
-                search_position = cursor + 1
-                continue
-            if cursor == suffix_start or cursor >= len(line) or line[cursor] not in {'"', "'"}:
-                candidates.append(None)
-                continue
 
-            quote = line[cursor]
-            title_start = cursor + 1
-            title_end = line.find(quote, title_start)
-            if title_end < 0 or any(
-                ord(character) < 32 or ord(character) == 127
-                for character in line[title_start:title_end]
+def _next_unescaped_opener(line: str, start: int) -> int | None:
+    cursor = start
+    while cursor < len(line):
+        if line.startswith("![", cursor):
+            if not _is_escaped_opener(line, cursor):
+                return cursor
+            cursor += 2
+            continue
+        if line[cursor] == "[":
+            if not _is_escaped_opener(line, cursor):
+                return cursor
+            cursor += 1
+            continue
+        cursor += 1
+    return None
+
+
+def _invalid_inline_construct(line: str, payload_open: int) -> tuple[InlineConstruct, int]:
+    recovery = line.find(")", payload_open + 1)
+    next_index = len(line) if recovery < 0 else recovery + 1
+    return InlineConstruct("invalid", None), next_index
+
+
+def _scan_inline_construct(
+    line: str, start: int
+) -> tuple[InlineConstruct | None, int]:
+    if line.startswith("![", start):
+        kind: Literal["link", "image"] = "image"
+        opener_length = 2
+    elif start < len(line) and line[start] == "[":
+        if start > 0 and line[start - 1] == "!":
+            return None, start + 1
+        kind = "link"
+        opener_length = 1
+    else:
+        return None, start + 1
+
+    if _is_escaped_opener(line, start):
+        return None, start + opener_length
+
+    label_start = start + opener_length
+    next_opener = _next_unescaped_opener(line, label_start)
+    payload_boundary = line.find("](", label_start)
+    if next_opener is not None and (
+        payload_boundary < 0 or next_opener < payload_boundary
+    ):
+        return None, next_opener
+    if payload_boundary < 0:
+        return None, start + opener_length
+
+    payload_open = payload_boundary + 1
+    label = line[label_start:payload_boundary]
+    if any(
+        character in "[]\\" or ord(character) < 32 or ord(character) == 127
+        for character in label
+    ):
+        return _invalid_inline_construct(line, payload_open)
+
+    cursor = payload_open + 1
+    while cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+
+    if cursor < len(line) and line[cursor] == "<":
+        destination_start = cursor + 1
+        cursor = destination_start
+        while cursor < len(line) and line[cursor] != ">":
+            character = line[cursor]
+            if character == "\\" or ord(character) < 32 or ord(character) == 127:
+                return _invalid_inline_construct(line, payload_open)
+            cursor += 1
+        if cursor >= len(line):
+            return _invalid_inline_construct(line, payload_open)
+        destination = line[destination_start:cursor]
+        cursor += 1
+    else:
+        destination_start = cursor
+        while cursor < len(line) and line[cursor] not in " \t)":
+            character = line[cursor]
+            if (
+                character in "(\\"
+                or ord(character) < 32
+                or ord(character) == 127
             ):
-                candidates.append(None)
-                continue
-            cursor = title_end + 1
-            while cursor < len(line) and line[cursor] in " \t":
-                cursor += 1
-            if cursor < len(line) and line[cursor] == ")":
-                candidates.append(destination)
-                search_position = cursor + 1
-            else:
-                candidates.append(None)
-    return candidates
+                return _invalid_inline_construct(line, payload_open)
+            cursor += 1
+        destination = line[destination_start:cursor]
+
+    if cursor < len(line) and line[cursor] == ")":
+        return InlineConstruct(kind, destination), cursor + 1
+
+    separator_start = cursor
+    while cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+    if cursor < len(line) and line[cursor] == ")":
+        return InlineConstruct(kind, destination), cursor + 1
+    if (
+        cursor == separator_start
+        or cursor >= len(line)
+        or line[cursor] not in {'"', "'"}
+    ):
+        return _invalid_inline_construct(line, payload_open)
+
+    quote = line[cursor]
+    cursor += 1
+    while cursor < len(line) and line[cursor] != quote:
+        character = line[cursor]
+        if character == "\\" or ord(character) < 32 or ord(character) == 127:
+            return _invalid_inline_construct(line, payload_open)
+        cursor += 1
+    if cursor >= len(line):
+        return _invalid_inline_construct(line, payload_open)
+
+    cursor += 1
+    while cursor < len(line) and line[cursor] in " \t":
+        cursor += 1
+    if cursor >= len(line) or line[cursor] != ")":
+        return _invalid_inline_construct(line, payload_open)
+    return InlineConstruct(kind, destination), cursor + 1
+
+
+def _scan_inline_constructs(content: str) -> tuple[InlineConstruct, ...]:
+    constructs = []
+    for line in content.split("\n"):
+        cursor = 0
+        while cursor < len(line):
+            construct, next_cursor = _scan_inline_construct(line, cursor)
+            if construct is not None:
+                constructs.append(construct)
+            cursor = next_cursor
+    return tuple(constructs)
 
 
 @prerequisite_safe("C03")
@@ -421,10 +509,13 @@ def check_c03(root: Path) -> Check:
         if not _is_bounded_regular_file(root, path):
             continue
         relative_source = path.relative_to(root).as_posix()
-        for destination in _extract_inline_destinations(_read_path_text(root, path)):
-            if not destination:
+        for construct in _scan_inline_constructs(_read_path_text(root, path)):
+            if construct.kind == "image":
+                continue
+            if construct.kind == "invalid" or not construct.destination:
                 failures.append(relative_source)
                 continue
+            destination = construct.destination
             try:
                 parsed = urlsplit(destination)
             except ValueError:
