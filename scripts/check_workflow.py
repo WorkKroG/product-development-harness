@@ -357,7 +357,9 @@ def _extract_inline_destinations(content: str) -> list[str | None]:
     candidates: list[str | None] = []
     link_start = re.compile(r"(?<!!)\[[^\[\]\r\n]*\]\(")
     for line in content.splitlines():
-        for match in link_start.finditer(line):
+        search_position = 0
+        while match := link_start.search(line, search_position):
+            search_position = match.end()
             cursor = match.end()
             while cursor < len(line) and line[cursor] in " \t":
                 cursor += 1
@@ -384,6 +386,7 @@ def _extract_inline_destinations(content: str) -> list[str | None]:
                 cursor += 1
             if cursor < len(line) and line[cursor] == ")":
                 candidates.append(destination)
+                search_position = cursor + 1
                 continue
             if cursor == suffix_start or cursor >= len(line) or line[cursor] not in {'"', "'"}:
                 candidates.append(None)
@@ -401,7 +404,11 @@ def _extract_inline_destinations(content: str) -> list[str | None]:
             cursor = title_end + 1
             while cursor < len(line) and line[cursor] in " \t":
                 cursor += 1
-            candidates.append(destination if cursor < len(line) and line[cursor] == ")" else None)
+            if cursor < len(line) and line[cursor] == ")":
+                candidates.append(destination)
+                search_position = cursor + 1
+            else:
+                candidates.append(None)
     return candidates
 
 

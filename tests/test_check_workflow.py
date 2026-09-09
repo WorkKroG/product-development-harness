@@ -554,6 +554,33 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
             )
         self.assert_check(self.checker.check_c03(missing_root), "C03", "FAIL")
 
+    def test_c03_title_text_is_not_scanned_as_an_adjacent_link(self):
+        cases = (
+            (
+                "named-double-title",
+                '[outer](references/lifecycle.md "fake [inner](references/missing.md)")',
+                "PASS",
+            ),
+            (
+                "empty-single-title",
+                "[](references/lifecycle.md 'fake [inner](references/missing.md)')",
+                "PASS",
+            ),
+            (
+                "real-adjacent-missing",
+                '[outer](references/lifecycle.md "fake [inner](references/missing.md)")'
+                "[](references/missing.md)",
+                "FAIL",
+            ),
+        )
+        for case_name, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
         self.mutate(
