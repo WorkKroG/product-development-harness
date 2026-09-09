@@ -1249,7 +1249,12 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         shutil.copytree(self.root, case_root)
         return case_root
 
-    def assert_c03_cli_failure(self, case_root: Path, markdown: str):
+    def assert_c03_cli_failure(
+        self,
+        case_root: Path,
+        markdown: str,
+        sensitive_destinations: tuple[str, ...],
+    ):
         active = case_root / "skills/product-development-workflow/SKILL.md"
         with active.open("a", encoding="utf-8") as stream:
             stream.write(f"\n{markdown}\n")
@@ -1268,6 +1273,9 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
         self.assertNotIn(str(case_root), result.stdout)
         self.assertNotIn(markdown, result.stdout)
+        for destination in sensitive_destinations:
+            self.assertNotIn(destination, result.stdout)
+            self.assertNotIn(destination, c03["evidence"])
         self.assertTrue(
             payload["checks"][-1]["evidence"].endswith(
                 "Structural checks do not prove behavioral correctness."
@@ -1458,26 +1466,43 @@ class WorkflowCheckerCliTest(unittest.TestCase):
 
     def test_bounded_scanner_cli_regressions_are_complete_and_redacted(self):
         cases = (
-            ("empty-label-missing", "[](references/missing.md)"),
+            (
+                "empty-label-missing",
+                "[](references/missing.md)",
+                ("references/missing.md",),
+            ),
             (
                 "image-title-adjacent-missing",
                 '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
                 "[](<references/missing.md>)",
+                (
+                    "https://example.invalid/image.png",
+                    "https://example.invalid/path",
+                    "references/missing.md",
+                ),
             ),
             (
                 "image-title-adjacent-unsupported",
                 '![image](references/ignored.md "fake [inner](https://example.invalid/path)")'
                 "[](madeup:references/lifecycle.md)",
+                (
+                    "references/ignored.md",
+                    "https://example.invalid/path",
+                    "madeup:references/lifecycle.md",
+                ),
             ),
             (
                 "malformed-image-adjacent-valid",
                 "![bad](x title)[](<references/lifecycle.md>)",
+                ("references/lifecycle.md",),
             ),
         )
-        for case_name, markdown in cases:
+        for case_name, markdown, sensitive_destinations in cases:
             with self.subTest(case_name):
                 case_root = self.fresh_c03_root(f"cli-{case_name}")
-                self.assert_c03_cli_failure(case_root, markdown)
+                self.assert_c03_cli_failure(
+                    case_root, markdown, sensitive_destinations
+                )
 
     def test_adversarial_c03_cli_failure_is_byte_deterministic(self):
         case_root = self.fresh_c03_root("cli-deterministic-image-title")
@@ -1485,7 +1510,15 @@ class WorkflowCheckerCliTest(unittest.TestCase):
             '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
             "[](<references/missing.md>)"
         )
-        first = self.assert_c03_cli_failure(case_root, markdown)
+        first = self.assert_c03_cli_failure(
+            case_root,
+            markdown,
+            (
+                "https://example.invalid/image.png",
+                "https://example.invalid/path",
+                "references/missing.md",
+            ),
+        )
         second = run_checker(case_root, self.valid_state)
         self.assertEqual((1, first.stdout, ""), (second.returncode, second.stdout, second.stderr))
 
