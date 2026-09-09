@@ -312,6 +312,99 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
 
         self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
 
+    def test_c03_rejects_unsupported_schemes_even_when_the_path_exists(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        original = skill.read_text(encoding="utf-8")
+        cases = (
+            "[ftp](ftp:references/lifecycle.md)",
+            "[file](FiLe:references/lifecycle.md?view=1#top)",
+            "[custom](madeup:references/lifecycle.md#top)",
+            '[angled](<FTP:references/lifecycle.md> "title")',
+        )
+        for markdown in cases:
+            with self.subTest(markdown):
+                skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
+                self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
+    def test_c03_accepts_angle_destinations_with_titles(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        spaced_target = skill.parent / "references/space target.md"
+        spaced_target.write_text("fixture\n", encoding="utf-8")
+        original = skill.read_text(encoding="utf-8")
+        cases = (
+            '[local](<references/lifecycle.md> "title")',
+            '[fragment](<#> "title")',
+            '[spaced](<references/space target.md> "title")',
+        )
+        for markdown in cases:
+            with self.subTest(markdown):
+                skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
+                self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+
+    def test_c03_preserves_declared_external_and_fragment_exemptions(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        original = skill.read_text(encoding="utf-8")
+        cases = (
+            "[http](HTTP://example.invalid/path)",
+            "[https](HtTpS://example.invalid/path?view=1#top)",
+            "[mail](MAILTO:owner@example.invalid)",
+            "[fragment](#section?view=1)",
+        )
+        for markdown in cases:
+            with self.subTest(markdown):
+                skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
+                self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+
+    def test_c03_accepts_plain_titled_angle_and_bounded_parent_local_paths(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        original = skill.read_text(encoding="utf-8")
+        cases = (
+            "[plain](references/lifecycle.md)",
+            '[titled](references/lifecycle.md "title")',
+            "[angle](<references/lifecycle.md>)",
+            "[bounded](references/../references/lifecycle.md)",
+        )
+        for markdown in cases:
+            with self.subTest(markdown):
+                skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
+                self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+
+    def test_c03_rejects_pathless_and_non_file_local_destinations(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        outside = self.root / "skills/outside.md"
+        outside.write_text("fixture\n", encoding="utf-8")
+        original = skill.read_text(encoding="utf-8")
+        cases = (
+            "[angle-empty](<>)",
+            "[query](?view=1)",
+            "[authority](//example.invalid/references/lifecycle.md)",
+            "[absolute](/references/lifecycle.md)",
+            "[escape](../outside.md)",
+            "[directory](references)",
+        )
+        for markdown in cases:
+            with self.subTest(markdown):
+                skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
+                self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
+    def test_c03_rejects_ancestor_and_dangling_symlink_targets(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        references = skill.parent / "references"
+        outside = Path(self.tempdir.name) / "outside"
+        outside.mkdir()
+        (outside / "target.md").write_text("fixture\n", encoding="utf-8")
+        (references / "linked").symlink_to(outside, target_is_directory=True)
+        (references / "dangling.md").symlink_to(references / "missing.md")
+        original = skill.read_text(encoding="utf-8")
+        cases = (
+            "[ancestor](references/linked/target.md)",
+            "[dangling](references/dangling.md)",
+        )
+        for markdown in cases:
+            with self.subTest(markdown):
+                skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
+                self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
         self.mutate(
@@ -790,6 +883,31 @@ class WorkflowCheckerCliTest(unittest.TestCase):
                         "Structural checks do not prove behavioral correctness."
                     )
                 )
+
+    def test_unsupported_scheme_returns_a_complete_c03_json_failure(self):
+        active = self.root / "skills/product-development-workflow/SKILL.md"
+        with active.open("a", encoding="utf-8") as stream:
+            stream.write("\n[external](madeup:references/lifecycle.md?view=1#top)\n")
+
+        result = run_checker(self.root, self.valid_state)
+
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(12, len(payload["checks"]))
+        self.assertEqual(
+            [f"C{number:02d}" for number in range(1, 13)],
+            [check["id"] for check in payload["checks"]],
+        )
+        self.assertEqual(["C03"], payload["failed"])
+        c03 = next(check for check in payload["checks"] if check["id"] == "C03")
+        self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
+        self.assertNotIn(str(self.root), result.stdout)
+        self.assertTrue(
+            payload["checks"][-1]["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
 
     def test_c12_failure_json_still_ends_with_the_mandatory_limitation(self):
         active = self.root / "skills/product-development-workflow/references/lifecycle.md"

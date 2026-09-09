@@ -365,8 +365,19 @@ def check_c03(root: Path) -> Check:
         relative_source = path.relative_to(root).as_posix()
         for raw_destination in link_pattern.findall(_read_path_text(root, path)):
             destination = raw_destination.strip()
-            if destination.startswith("<") and destination.endswith(">"):
-                destination = destination[1:-1]
+            if destination.startswith("<"):
+                angle_end = destination.find(">")
+                remainder = destination[angle_end + 1 :] if angle_end >= 0 else ""
+                title = remainder.strip()
+                quoted_title = (
+                    len(title) >= 2
+                    and title[0] == title[-1]
+                    and title[0] in {'"', "'"}
+                )
+                if angle_end >= 0 and (not remainder or remainder[0].isspace()) and (
+                    not title or quoted_title
+                ):
+                    destination = destination[1:angle_end]
             elif destination:
                 destination = destination.split(maxsplit=1)[0]
             if not destination:
@@ -385,6 +396,9 @@ def check_c03(root: Path) -> Check:
                 and not parsed.query
             )
             if parsed.scheme in {"http", "https", "mailto"} or fragment_only:
+                continue
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                failures.append(relative_source)
                 continue
             target_text = parsed.path
             if target_text.startswith("/"):
