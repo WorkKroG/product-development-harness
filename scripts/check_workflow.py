@@ -461,6 +461,8 @@ def _scan_inline_construct(
     separator_start = cursor
     while cursor < len(line) and line[cursor] in " \t":
         cursor += 1
+    if cursor < len(line) and line[cursor] == ")":
+        return InlineConstruct(kind, destination), cursor + 1
     if (
         cursor == separator_start
         or cursor >= len(line)

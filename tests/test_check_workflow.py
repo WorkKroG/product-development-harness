@@ -300,6 +300,20 @@ class WorkflowInlineConstructScannerTest(unittest.TestCase):
             self.checker._scan_inline_constructs("[x]( 'title')[x]( )"),
         )
 
+    def test_trailing_horizontal_space_without_a_title_is_valid(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("image", "image.png"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[plain](references/lifecycle.md )"
+                "[angle](<references/lifecycle.md>\t)"
+                "![image](image.png )"
+            ),
+        )
+
     def test_m09_m10_images_emit_only_image_tokens_and_accept_empty_destination(self):
         self.assertEqual(
             (
@@ -547,6 +561,38 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
             with self.subTest(markdown):
                 skill.write_text(f"{original}\n{markdown}\n", encoding="utf-8")
                 self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+
+    def test_c03_trailing_horizontal_space_without_title_reaches_classification(self):
+        cases = (
+            (
+                "plain",
+                "[x](references/lifecycle.md )",
+                "[x](references/missing.md )",
+            ),
+            (
+                "angle-tab",
+                "[x](<references/lifecycle.md>\t)",
+                "[x](<references/missing.md>\t)",
+            ),
+            (
+                "image-plus-link",
+                "![x](image.png )[ok](references/lifecycle.md )",
+                "![x](image.png )[bad](references/missing.md )",
+            ),
+        )
+        for case_name, valid, invalid in cases:
+            with self.subTest(case_name, state="valid"):
+                valid_root = self.fresh_c03_root(f"trailing-{case_name}-valid")
+                skill = valid_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{valid}\n")
+                self.assert_check(self.checker.check_c03(valid_root), "C03", "PASS")
+            with self.subTest(case_name, state="invalid"):
+                invalid_root = self.fresh_c03_root(f"trailing-{case_name}-invalid")
+                skill = invalid_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{invalid}\n")
+                self.assert_check(self.checker.check_c03(invalid_root), "C03", "FAIL")
 
     def test_c03_rejects_pathless_and_non_file_local_destinations(self):
         skill = self.root / "skills/product-development-workflow/SKILL.md"
