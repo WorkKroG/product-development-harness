@@ -357,7 +357,7 @@ def check_c01(root: Path) -> Check:
 def check_c03(root: Path) -> Check:
     active = root / "skills/product-development-workflow"
     failures = []
-    link_pattern = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
+    link_pattern = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]*)\)")
     paths = active.rglob("*.md") if _is_bounded_directory(root, active) else ()
     for path in sorted(paths):
         if not _is_bounded_regular_file(root, path):
@@ -367,14 +367,24 @@ def check_c03(root: Path) -> Check:
             destination = raw_destination.strip()
             if destination.startswith("<") and destination.endswith(">"):
                 destination = destination[1:-1]
-            else:
+            elif destination:
                 destination = destination.split(maxsplit=1)[0]
+            if not destination:
+                failures.append(relative_source)
+                continue
             try:
                 parsed = urlsplit(destination)
             except ValueError:
                 failures.append(relative_source)
                 continue
-            if parsed.scheme in {"http", "https", "mailto"} or not parsed.path:
+            fragment_only = (
+                destination.startswith("#")
+                and not parsed.scheme
+                and not parsed.netloc
+                and not parsed.path
+                and not parsed.query
+            )
+            if parsed.scheme in {"http", "https", "mailto"} or fragment_only:
                 continue
             target_text = parsed.path
             if target_text.startswith("/"):
