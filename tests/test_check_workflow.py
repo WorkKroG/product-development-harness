@@ -221,6 +221,180 @@ class WorkflowCheckerCoreTest(unittest.TestCase):
         )
 
 
+class WorkflowInlineConstructScannerTest(unittest.TestCase):
+    def setUp(self):
+        self.checker = load_checker_module()
+
+    def test_m01_m02_emit_named_and_empty_label_links_in_order(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "references/missing.md"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[named](references/lifecycle.md)[](references/missing.md)"
+            ),
+        )
+
+    def test_m03_m04_emit_every_empty_pathless_and_authority_destination(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", ""),
+                self.checker.InlineConstruct("link", ""),
+                self.checker.InlineConstruct("link", ""),
+                self.checker.InlineConstruct("link", "//host"),
+                self.checker.InlineConstruct("link", "//host/path"),
+                self.checker.InlineConstruct("link", "?view=1"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[empty]()[](   )[](<>)"
+                "[authority](//host)[](//host/path)[query](?view=1)"
+            ),
+        )
+
+    def test_m05_m06_emit_unsupported_and_exempt_destinations_exactly(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "ftp:references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "file:references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "madeup:references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "http://example.invalid/path"),
+                self.checker.InlineConstruct("link", "HTTPS://example.invalid/path"),
+                self.checker.InlineConstruct("link", "mailto:owner@example.invalid"),
+                self.checker.InlineConstruct("link", "#"),
+                self.checker.InlineConstruct("link", "#section?view=1"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[ftp](ftp:references/lifecycle.md)"
+                "[](file:references/lifecycle.md)"
+                "[custom](madeup:references/lifecycle.md)"
+                "[http](http://example.invalid/path)"
+                "[](HTTPS://example.invalid/path)"
+                "[mail](mailto:owner@example.invalid)"
+                "[top](#)[](#section?view=1)"
+            ),
+        )
+
+    def test_m07_m08_preserve_destinations_while_consuming_complete_titles(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "references/missing.md"),
+                self.checker.InlineConstruct("link", "references/right).md"),
+                self.checker.InlineConstruct("link", "references/missing target.md"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[plain](references/lifecycle.md 'single')"
+                '[double](references/missing.md "title ) [fake](ignored)")'
+                "[angle](<references/right).md> 'single ) title')"
+                '[](<references/missing target.md> "fake [inner](missing)")'
+            ),
+        )
+
+    def test_leading_space_precedence_is_literal(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "'title'"),
+                self.checker.InlineConstruct("link", ""),
+            ),
+            self.checker._scan_inline_constructs("[x]( 'title')[x]( )"),
+        )
+
+    def test_m09_m10_images_emit_only_image_tokens_and_accept_empty_destination(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("image", ""),
+                self.checker.InlineConstruct("image", "references/missing.md"),
+                self.checker.InlineConstruct("image", "https://example.invalid/image.png"),
+                self.checker.InlineConstruct("image", "images/fake).png"),
+            ),
+            self.checker._scan_inline_constructs(
+                "![]()![named](references/missing.md)"
+                '![remote](https://example.invalid/image.png "fake [inner](missing)")'
+                "![angle](<images/fake).png> 'fake [inner](https://example.invalid)')"
+            ),
+        )
+
+    def test_m11_m12_image_title_is_consumed_before_adjacent_link(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("image", "https://example.invalid/image.png"),
+                self.checker.InlineConstruct("link", "references/missing.md"),
+                self.checker.InlineConstruct("image", "references/ignored.md"),
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+            ),
+            self.checker._scan_inline_constructs(
+                '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
+                "[](<references/missing.md>)"
+                "![next](references/ignored.md 'fake [inner](madeup:path)')"
+                "[valid](references/lifecycle.md)"
+            ),
+        )
+
+    def test_m13_literal_and_odd_escaped_openers_do_not_claim_later_constructs(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("image", "references/ignored.md"),
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "references/even.md"),
+                self.checker.InlineConstruct("image", "references/even-image.md"),
+            ),
+            self.checker._scan_inline_constructs(
+                "literal [ ![image](references/ignored.md)[](references/lifecycle.md)\n"
+                r"\[odd](references/odd.md)\![odd](references/odd-image.md)"
+                "\n"
+                r"\\[even](references/even.md)\\![even](references/even-image.md)"
+            ),
+        )
+
+    def test_m14_emits_every_adjacent_and_repeated_link(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "#section"),
+                self.checker.InlineConstruct("link", "references/missing.md"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[](references/lifecycle.md)[two](#section)[](references/missing.md)"
+            ),
+        )
+
+    def test_m15_m16_emit_invalid_tokens_and_recover_at_first_closing_parenthesis(self):
+        invalid = self.checker.InlineConstruct("invalid", None)
+        link = self.checker.InlineConstruct("link", "references/lifecycle.md")
+        cases = (
+            ("[x](p title)", (invalid,)),
+            ("[x](p 'mismatch\\\")", (invalid,)),
+            ("[x](<p)", (invalid,)),
+            (r"[x](p\q)", (invalid,)),
+            ("[x](p\x01)", (invalid,)),
+            ("[bad](x title)[ok](references/lifecycle.md)", (invalid, link)),
+            ("![bad](x title)[](<references/lifecycle.md>)", (invalid, link)),
+            (
+                '[bad](x "unterminated [maybe](references/lifecycle.md)',
+                (invalid,),
+            ),
+        )
+        for markdown, expected in cases:
+            with self.subTest(markdown=repr(markdown)):
+                self.assertEqual(expected, self.checker._scan_inline_constructs(markdown))
+
+    def test_m17_scans_each_physical_line_without_cross_line_capture(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "references/missing.md"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[line](references/lifecycle.md)\n[](references/missing.md)"
+            ),
+        )
+        self.assertEqual(
+            (),
+            self.checker._scan_inline_constructs("[not-cross-line]\n(references/missing.md)"),
+        )
+
+
 class WorkflowStructuralChecksTest(unittest.TestCase):
     STRUCTURAL_FUNCTIONS = (
         "check_c01",
@@ -580,6 +754,91 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
                 with skill.open("a", encoding="utf-8") as stream:
                     stream.write(f"\n{markdown}\n")
                 self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_c03_complete_images_cannot_hide_adjacent_link_destinations(self):
+        cases = (
+            (
+                "image-only",
+                '![image](references/missing.md "fake [inner](missing)")',
+                "PASS",
+            ),
+            (
+                "image-adjacent-existing",
+                '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
+                "[](<references/lifecycle.md>)",
+                "PASS",
+            ),
+            (
+                "image-adjacent-missing",
+                '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
+                "[](<references/missing.md>)",
+                "FAIL",
+            ),
+            (
+                "image-adjacent-unsupported",
+                "![image](references/ignored.md 'fake [inner](https://example.invalid/path)')"
+                "[](madeup:references/lifecycle.md)",
+                "FAIL",
+            ),
+        )
+        for case_name, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_c03_escape_parity_literal_precedence_and_line_boundaries(self):
+        cases = (
+            ("odd-link", r"\[x](references/missing.md)", "PASS"),
+            ("odd-image", r"\![x](references/missing.md)", "PASS"),
+            ("even-link", r"\\[x](references/missing.md)", "FAIL"),
+            (
+                "literal-before-independent",
+                "literal [ ![image](references/missing.md)[](references/lifecycle.md)",
+                "PASS",
+            ),
+            (
+                "separate-lines",
+                "[not-cross-line]\n(references/missing.md)",
+                "PASS",
+            ),
+            (
+                "next-line-missing",
+                "[valid](references/lifecycle.md)\n[](references/missing.md)",
+                "FAIL",
+            ),
+        )
+        for case_name, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_c03_malformed_constructs_fail_and_recover_without_hiding_adjacent_links(self):
+        cases = (
+            ("plain-suffix", "[x](p title)"),
+            ("mismatched-title", "[x](p 'mismatch\\\")"),
+            ("unterminated-angle", "[x](<p)"),
+            ("backslash", r"[x](p\q)"),
+            ("control", "[x](p\x01)"),
+            ("recover-link", "[bad](x title)[ok](references/lifecycle.md)"),
+            ("recover-image", "![bad](x title)[](<references/lifecycle.md>)"),
+            (
+                "ambiguous-eol",
+                '[bad](x "unterminated [maybe](references/lifecycle.md)',
+            ),
+        )
+        for case_name, markdown in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(case_name)
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", "FAIL")
 
     def test_c04_detects_wrong_display_name(self):
         self.assert_check(self.checker.check_c04(self.root), "C04", "PASS")
@@ -944,6 +1203,32 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         shutil.copytree(self.root, case_root)
         return case_root
 
+    def assert_c03_cli_failure(self, case_root: Path, markdown: str):
+        active = case_root / "skills/product-development-workflow/SKILL.md"
+        with active.open("a", encoding="utf-8") as stream:
+            stream.write(f"\n{markdown}\n")
+
+        result = run_checker(case_root, self.valid_state)
+
+        self.assertEqual(1, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(
+            [f"C{number:02d}" for number in range(1, 13)],
+            [check["id"] for check in payload["checks"]],
+        )
+        self.assertEqual(["C03"], payload["failed"])
+        c03 = next(check for check in payload["checks"] if check["id"] == "C03")
+        self.assertIn("skills/product-development-workflow/SKILL.md", c03["evidence"])
+        self.assertNotIn(str(case_root), result.stdout)
+        self.assertNotIn(markdown, result.stdout)
+        self.assertTrue(
+            payload["checks"][-1]["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
+        return result
+
     def test_json_success_has_exact_core_shape_order_and_limitation(self):
         result = run_checker(self.root, self.valid_state)
         self.assertEqual(0, result.returncode, result.stderr or result.stdout)
@@ -1124,6 +1409,64 @@ class WorkflowCheckerCliTest(unittest.TestCase):
                         "Structural checks do not prove behavioral correctness."
                     )
                 )
+
+    def test_bounded_scanner_cli_regressions_are_complete_and_redacted(self):
+        cases = (
+            ("empty-label-missing", "[](references/missing.md)"),
+            (
+                "image-title-adjacent-missing",
+                '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
+                "[](<references/missing.md>)",
+            ),
+            (
+                "image-title-adjacent-unsupported",
+                '![image](references/ignored.md "fake [inner](https://example.invalid/path)")'
+                "[](madeup:references/lifecycle.md)",
+            ),
+            (
+                "malformed-image-adjacent-valid",
+                "![bad](x title)[](<references/lifecycle.md>)",
+            ),
+        )
+        for case_name, markdown in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(f"cli-{case_name}")
+                self.assert_c03_cli_failure(case_root, markdown)
+
+    def test_adversarial_c03_cli_failure_is_byte_deterministic(self):
+        case_root = self.fresh_c03_root("cli-deterministic-image-title")
+        markdown = (
+            '![image](https://example.invalid/image.png "fake [inner](<https://example.invalid/path")'
+            "[](<references/missing.md>)"
+        )
+        first = self.assert_c03_cli_failure(case_root, markdown)
+        second = run_checker(case_root, self.valid_state)
+        self.assertEqual((1, first.stdout, ""), (second.returncode, second.stdout, second.stderr))
+
+    def test_valid_image_and_adjacent_empty_label_angle_title_link_pass_cli(self):
+        active = self.root / "skills/product-development-workflow/SKILL.md"
+        with active.open("a", encoding="utf-8") as stream:
+            stream.write(
+                "\n![image](references/ignored.md 'fake [inner](missing)')"
+                '[](<references/lifecycle.md> "title ) [fake](missing)")\n'
+            )
+
+        result = run_checker(self.root, self.valid_state)
+
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual([f"C{number:02d}" for number in range(1, 13)], payload["passed"])
+        self.assertEqual([], payload["failed"])
+        self.assertEqual(
+            [f"C{number:02d}" for number in range(1, 13)],
+            [check["id"] for check in payload["checks"]],
+        )
+        self.assertTrue(
+            payload["checks"][-1]["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
 
     def test_c12_failure_json_still_ends_with_the_mandatory_limitation(self):
         active = self.root / "skills/product-development-workflow/references/lifecycle.md"
