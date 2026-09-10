@@ -359,6 +359,47 @@ class InlineConstruct:
     destination: str | None
 
 
+@dataclass(frozen=True)
+class ClassifiedDestination:
+    kind: Literal["exempt", "local", "invalid"]
+    local_path: str | None
+
+
+def _classify_inline_destination(destination: str) -> ClassifiedDestination:
+    """Classify without changing the identity of a local path."""
+    invalid = ClassifiedDestination("invalid", None)
+    if destination == "":
+        return invalid
+
+    if destination.startswith("#"):
+        parsed = urlsplit(destination)
+        if not parsed.scheme and not parsed.netloc and not parsed.path and not parsed.query:
+            return ClassifiedDestination("exempt", None)
+
+    if re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", destination):
+        try:
+            parsed = urlsplit(destination)
+        except ValueError:
+            return invalid
+        if parsed.scheme.lower() in {"http", "https", "mailto"}:
+            return ClassifiedDestination("exempt", None)
+        return invalid
+
+    if destination.startswith("//"):
+        return invalid
+
+    try:
+        parsed = urlsplit("./" + destination)
+    except ValueError:
+        return invalid
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith("./"):
+        return invalid
+    local_path = parsed.path[2:]
+    if not local_path or not local_path.strip(" "):
+        return invalid
+    return ClassifiedDestination("local", local_path)
+
+
 def _is_escaped_opener(line: str, start: int) -> bool:
     backslashes = 0
     cursor = start - 1
@@ -512,28 +553,16 @@ def check_c03(root: Path) -> Check:
         for construct in _scan_inline_constructs(_read_path_text(root, path)):
             if construct.kind == "image":
                 continue
-            if construct.kind == "invalid" or not construct.destination:
+            if construct.kind == "invalid" or construct.destination is None:
                 failures.append(relative_source)
                 continue
-            destination = construct.destination
-            try:
-                parsed = urlsplit(destination)
-            except ValueError:
+            classified = _classify_inline_destination(construct.destination)
+            if classified.kind == "exempt":
+                continue
+            if classified.kind == "invalid" or classified.local_path is None:
                 failures.append(relative_source)
                 continue
-            fragment_only = (
-                destination.startswith("#")
-                and not parsed.scheme
-                and not parsed.netloc
-                and not parsed.path
-                and not parsed.query
-            )
-            if parsed.scheme in {"http", "https", "mailto"} or fragment_only:
-                continue
-            if parsed.scheme or parsed.netloc or not parsed.path:
-                failures.append(relative_source)
-                continue
-            target_text = parsed.path
+            target_text = classified.local_path
             if target_text.startswith("/"):
                 failures.append(relative_source)
                 continue
