@@ -408,6 +408,118 @@ class WorkflowInlineConstructScannerTest(unittest.TestCase):
             self.checker._scan_inline_constructs("[not-cross-line]\n(references/missing.md)"),
         )
 
+    def test_d01_d16_emit_exact_destination_tokens_without_normalization(self):
+        self.assertEqual(
+            (
+                self.checker.InlineConstruct("link", " references/lifecycle.md"),
+                self.checker.InlineConstruct("link", " proof.md"),
+                self.checker.InlineConstruct("link", "  proof.md?mode=1#part"),
+                self.checker.InlineConstruct("link", "references/proof file.md "),
+                self.checker.InlineConstruct("link", " https:remote"),
+                self.checker.InlineConstruct("link", " //host"),
+                self.checker.InlineConstruct("link", " #part"),
+                self.checker.InlineConstruct("link", " ?query"),
+                self.checker.InlineConstruct("image", " ignored.png"),
+                self.checker.InlineConstruct("link", "references/lifecycle.md"),
+                self.checker.InlineConstruct("link", "http://["),
+                self.checker.InlineConstruct("link", "references/name:part.md?x#y"),
+            ),
+            self.checker._scan_inline_constructs(
+                "[](< references/lifecycle.md>)"
+                "[](< proof.md>)"
+                "[](<  proof.md?mode=1#part>)"
+                "[](<references/proof file.md >)"
+                "[](< https:remote>)"
+                "[](< //host>)"
+                "[](< #part>)"
+                "[](< ?query>)"
+                "![](< ignored.png>)"
+                "[](references/lifecycle.md)"
+                "[](http://[)"
+                "[](references/name:part.md?x#y)"
+            ),
+        )
+
+
+class WorkflowDestinationClassificationTest(unittest.TestCase):
+    def setUp(self):
+        self.checker = load_checker_module()
+
+    def classify(self, destination: str):
+        classifier = getattr(self.checker, "_classify_inline_destination", None)
+        self.assertIsNotNone(
+            classifier,
+            "private exact-destination classifier must be implemented",
+        )
+        return classifier(destination)
+
+    def assert_classified(self, destination: str, kind: str, local_path: str | None):
+        classified = self.classify(destination)
+        self.assertEqual((kind, local_path), (classified.kind, classified.local_path))
+
+    def test_d01_d04_preserve_leading_inner_and_trailing_spaces(self):
+        cases = (
+            (" references/lifecycle.md", " references/lifecycle.md"),
+            (" proof.md", " proof.md"),
+            ("  proof.md?mode=1#part", "  proof.md"),
+            ("references/proof file.md", "references/proof file.md"),
+            ("references/proof file.md ", "references/proof file.md "),
+        )
+        for destination, expected_path in cases:
+            with self.subTest(destination=repr(destination)):
+                self.assert_classified(destination, "local", expected_path)
+
+    def test_d05_d11_reject_empty_and_space_only_local_results(self):
+        for destination in ("", " ", "   ", " #part", " ?query"):
+            with self.subTest(destination=repr(destination)):
+                self.assert_classified(destination, "invalid", None)
+
+    def test_d06_d07_schemes_are_recognized_only_at_index_zero(self):
+        cases = (
+            ("http:", "exempt", None),
+            ("HTTPS:", "exempt", None),
+            ("MailTo:", "exempt", None),
+            ("ftp:", "invalid", None),
+            ("FiLe:target", "invalid", None),
+            ("custom:value", "invalid", None),
+            (" https:remote", "local", " https:remote"),
+            (" ftp:remote", "local", " ftp:remote"),
+        )
+        for destination, kind, local_path in cases:
+            with self.subTest(destination=destination):
+                self.assert_classified(destination, kind, local_path)
+
+    def test_d08_d10_network_paths_and_fragments_keep_index_zero_semantics(self):
+        cases = (
+            ("//host", "invalid", None),
+            ("//host/path", "invalid", None),
+            (" //host", "local", " //host"),
+            (" /references/lifecycle.md", "local", " /references/lifecycle.md"),
+            ("#", "exempt", None),
+            ("#part", "exempt", None),
+            ("#part?query", "exempt", None),
+        )
+        for destination, kind, local_path in cases:
+            with self.subTest(destination=destination):
+                self.assert_classified(destination, kind, local_path)
+
+    def test_d12_query_and_fragment_are_removed_without_other_path_changes(self):
+        self.assert_classified(
+            "references/lifecycle.md?mode=1#part",
+            "local",
+            "references/lifecycle.md",
+        )
+
+    def test_d15_scheme_parse_error_is_invalid(self):
+        self.assert_classified("http://[", "invalid", None)
+
+    def test_d16_colon_after_the_first_path_component_remains_local(self):
+        self.assert_classified(
+            "references/name:part.md?x#y",
+            "local",
+            "references/name:part.md",
+        )
+
 
 class WorkflowStructuralChecksTest(unittest.TestCase):
     STRUCTURAL_FUNCTIONS = (
@@ -459,6 +571,135 @@ class WorkflowStructuralChecksTest(unittest.TestCase):
         path = self.root / "baseline/product-development-cycle/SKILL.md"
         path.write_bytes(path.read_bytes() + b"\nmutation")
         self.assert_check(self.checker.check_c01(self.root), "C01", "FAIL")
+
+    def test_d01_leading_space_is_not_stripped_to_an_existing_local_path(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[](< references/lifecycle.md>)\n")
+
+        self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
+    def test_d02_exact_leading_space_local_file_resolves(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        (skill.parent / " proof.md").write_text("fixture\n", encoding="utf-8")
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[](< proof.md>)\n")
+
+        self.assert_check(self.checker.check_c03(self.root), "C03", "PASS")
+
+    def test_d03_d04_local_spaces_survive_suffix_removal(self):
+        cases = (
+            ("two-leading", "  proof.md", "[](<  proof.md?mode=1#part>)", "PASS"),
+            (
+                "inner-space",
+                "references/proof file.md",
+                "[](<references/proof file.md>)",
+                "PASS",
+            ),
+            (
+                "trailing-space",
+                "references/proof file.md",
+                "[](<references/proof file.md >)",
+                "FAIL",
+            ),
+        )
+        for case_name, fixture, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(f"d03-d04-{case_name}")
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                target = skill.parent / fixture
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("fixture\n", encoding="utf-8")
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_d05_d12_destination_classes_reach_expected_c03_outcomes(self):
+        cases = (
+            ("angle-space", "[](< >)", "FAIL"),
+            ("angle-spaces", "[](<   >)", "FAIL"),
+            ("http-pathless", "[](http:)", "PASS"),
+            ("mixed-https-pathless", "[](HtTpS:)", "PASS"),
+            ("mailto-pathless", "[](MAILTO:)", "PASS"),
+            ("unsupported", "[](ftp:)", "FAIL"),
+            ("authority", "[](//host/path)", "FAIL"),
+            ("spaced-https", "[](< https:remote>)", "FAIL"),
+            ("spaced-ftp", "[](< ftp:remote>)", "FAIL"),
+            ("spaced-authority", "[](< //host>)", "FAIL"),
+            ("spaced-absolute", "[](< /references/lifecycle.md>)", "FAIL"),
+            ("fragment-empty", "[](#)", "PASS"),
+            ("fragment", "[](#part)", "PASS"),
+            ("fragment-query", "[](#part?query)", "PASS"),
+            ("spaced-fragment", "[](< #part>)", "FAIL"),
+            ("spaced-query", "[](< ?query>)", "FAIL"),
+            ("local-suffix", "[](references/lifecycle.md?x#y)", "PASS"),
+            ("missing-local-suffix", "[](references/missing.md?x#y)", "FAIL"),
+        )
+        for case_name, markdown, expected in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(f"d05-d12-{case_name}")
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n{markdown}\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", expected)
+
+    def test_d13_filesystem_guards_remain_fail_closed(self):
+        outside = Path(self.tempdir.name) / "outside-d13"
+        outside.mkdir()
+        (outside / "target.md").write_text("fixture\n", encoding="utf-8")
+        cases = (
+            ("absolute", "/references/lifecycle.md", None),
+            ("escape", "../outside.md", None),
+            ("directory", "references", None),
+            ("leaf-symlink", "references/leaf.md", "leaf"),
+            ("ancestor-symlink", "references/linked/target.md", "ancestor"),
+            ("dangling-symlink", "references/dangling.md", "dangling"),
+        )
+        for case_name, destination, fixture_kind in cases:
+            with self.subTest(case_name):
+                case_root = self.fresh_c03_root(f"d13-{case_name}")
+                skill = case_root / "skills/product-development-workflow/SKILL.md"
+                references = skill.parent / "references"
+                if case_name == "escape":
+                    (case_root / "skills/outside.md").write_text(
+                        "fixture\n", encoding="utf-8"
+                    )
+                elif fixture_kind == "leaf":
+                    (references / "leaf.md").symlink_to(references / "lifecycle.md")
+                elif fixture_kind == "ancestor":
+                    (references / "linked").symlink_to(outside, target_is_directory=True)
+                elif fixture_kind == "dangling":
+                    (references / "dangling.md").symlink_to(references / "missing.md")
+                with skill.open("a", encoding="utf-8") as stream:
+                    stream.write(f"\n[](<{destination}>)\n")
+                self.assert_check(self.checker.check_c03(case_root), "C03", "FAIL")
+
+    def test_d14_leading_space_image_is_ignored_and_adjacent_link_is_observed(self):
+        valid_root = self.fresh_c03_root("d14-valid")
+        valid_skill = valid_root / "skills/product-development-workflow/SKILL.md"
+        with valid_skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n![](< ignored.png>)[](references/lifecycle.md)\n")
+        self.assert_check(self.checker.check_c03(valid_root), "C03", "PASS")
+
+        missing_root = self.fresh_c03_root("d14-missing")
+        missing_skill = missing_root / "skills/product-development-workflow/SKILL.md"
+        with missing_skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n![](< ignored.png>)[](references/missing.md)\n")
+        self.assert_check(self.checker.check_c03(missing_root), "C03", "FAIL")
+
+    def test_d15_scheme_parse_error_fails_c03_without_escaping(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[](http://[)\n")
+
+        self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
+
+    def test_d16_later_colon_is_a_local_path_and_missing_target_fails(self):
+        skill = self.root / "skills/product-development-workflow/SKILL.md"
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[](references/name:part.md?x#y)\n")
+
+        self.assert_check(self.checker.check_c03(self.root), "C03", "FAIL")
 
     def test_c03_accepts_query_and_fragment_then_rejects_missing_local_target(self):
         skill = "skills/product-development-workflow/SKILL.md"
@@ -1295,6 +1536,48 @@ class WorkflowCheckerCliTest(unittest.TestCase):
         self.assertEqual([f"C{number:02d}" for number in range(1, 13)], [item["id"] for item in payload["checks"]])
         self.assertEqual({"id", "status", "evidence"}, set(payload["checks"][0]))
         self.assertTrue(payload["checks"][-1]["evidence"].endswith("Structural checks do not prove behavioral correctness."))
+
+    def test_d01_cli_rejects_stripped_alias_deterministically_and_redacts_paths(self):
+        case_root = self.fresh_c03_root("d01-cli")
+        markdown = "[](< references/lifecycle.md>)"
+        first = self.assert_c03_cli_failure(
+            case_root,
+            markdown,
+            (" references/lifecycle.md", "references/lifecycle.md"),
+        )
+        second = run_checker(case_root, self.valid_state)
+
+        self.assertEqual((1, first.stdout, ""), (second.returncode, second.stdout, second.stderr))
+
+    def test_d02_cli_resolves_the_exact_leading_space_file(self):
+        case_root = self.fresh_c03_root("d02-cli")
+        skill = case_root / "skills/product-development-workflow/SKILL.md"
+        (skill.parent / " proof.md").write_text("fixture\n", encoding="utf-8")
+        with skill.open("a", encoding="utf-8") as stream:
+            stream.write("\n[](< proof.md>)\n")
+
+        result = run_checker(case_root, self.valid_state)
+
+        self.assertEqual(0, result.returncode, result.stderr or result.stdout)
+        self.assertEqual("", result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual([f"C{number:02d}" for number in range(1, 13)], payload["passed"])
+        self.assertEqual([], payload["failed"])
+        self.assertEqual(
+            [f"C{number:02d}" for number in range(1, 13)],
+            [check["id"] for check in payload["checks"]],
+        )
+        self.assertNotIn(str(case_root), result.stdout)
+        self.assertNotIn(" proof.md", result.stdout)
+        self.assertTrue(
+            payload["checks"][-1]["evidence"].endswith(
+                "Structural checks do not prove behavioral correctness."
+            )
+        )
+
+    def test_d15_cli_scheme_parse_error_fails_only_c03_and_is_redacted(self):
+        case_root = self.fresh_c03_root("d15-cli")
+        self.assert_c03_cli_failure(case_root, "[](http://[)", ("http://[",))
 
     def test_text_success_is_ordered_and_ends_with_limitation(self):
         result = run_checker(self.root, self.valid_state, json_output=False)
