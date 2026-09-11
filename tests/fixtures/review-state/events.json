@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "fixture_kind": "input-only",
+  "events": [
+    {
+      "id": "queued-creation",
+      "observed_state": {
+        "client_id": "synthetic-client-queued-001",
+        "thread_id": null,
+        "creation_state": "queued",
+        "creation_request_count": 1
+      },
+      "available_evidence": ["synthetic creation response"],
+      "unknowns": ["real task/thread ID"]
+    },
+    {
+      "id": "sha-mismatch",
+      "observed_state": {
+        "phase": "Change Review",
+        "reviewed_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "identity_class": "synthetic"
+      },
+      "available_evidence": ["synthetic review record", "synthetic current Git identity"],
+      "unknowns": []
+    },
+    {
+      "id": "unavailable-requested-model",
+      "observed_state": {
+        "requested_model_reasoning": "gpt-6-astra/high",
+        "accepted_native_assignment": null,
+        "platform_report": "unavailable",
+        "prompt_text": "Use Astra for this role"
+      },
+      "available_evidence": ["synthetic native assignment response", "synthetic prompt text"],
+      "unknowns": ["executing model"]
+    },
+    {
+      "id": "platform-denial",
+      "observed_state": {
+        "attempted_action": "synthetic push",
+        "target": "github.com/synthetic-quietfollow-org/synthetic-quietfollow-repo",
+        "platform_state": "denied",
+        "target_value_kind": "fixture data only",
+        "local_fixture_work_authorized": true,
+        "credential_data_present": false
+      },
+      "available_evidence": ["synthetic denial response"],
+      "unknowns": ["future platform permission"]
+    },
+    {
+      "id": "old-prompt-drift",
+      "observed_state": {
+        "old_process_identity": "synthetic-workflow-v0",
+        "new_process_identity": "synthetic-workflow-v1",
+        "identities_differ": true,
+        "in_progress_work_items": 1,
+        "completed_work_items": 1,
+        "completed_evidence_available": true,
+        "acknowledgement_present": false
+      },
+      "available_evidence": ["synthetic old prompt", "synthetic new prompt", "synthetic Work Item records"],
+      "unknowns": ["acknowledgement"]
+    },
+    {
+      "id": "unchanged-quiet-wait",
+      "observed_state": {
+        "previous_state": "in progress",
+        "current_state": "in progress",
+        "transition_observed": false,
+        "failure_observed": false,
+        "action_request_observed": false,
+        "existing_wait_count": 1
+      },
+      "available_evidence": ["synthetic previous wait snapshot", "synthetic current wait snapshot"],
+      "unknowns": ["future transition"]
+    },
+    {
+      "id": "release-rehearsal-manual-evidence-pending",
+      "observed_state": {
+        "automated_checks": "green",
+        "activity": "simulated release rehearsal",
+        "rollout_notes_present": true,
+        "rollback_notes_present": true,
+        "manual_accessibility_check": "pending",
+        "manual_backup_restore_check": "pending"
+      },
+      "available_evidence": ["synthetic automated-check record", "synthetic rollout notes", "synthetic rollback notes"],
+      "unknowns": ["manual accessibility evidence", "manual backup/restore evidence"]
+    }
+  ]
+}

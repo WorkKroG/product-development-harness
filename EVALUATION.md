@@ -15,6 +15,13 @@ Offline случаи не публикуют GitHub объекты и не ме�
 отдельно проверяет настоящие native handoffs/ожидание и доступы в разрешённом тестовом проекте.
 Нельзя считать чтение fixture доказательством реального transport execution.
 
+## Prepared FWP coverage
+
+The [Module 5 reviewer rubric](tests/scenarios.md) provides prepared coverage, not executed evidence,
+for E02, E08, E10–E14, E17, E20–E22, E25, E27–E28, E31, E33–E34, E37–E39,
+and E41. The input fixtures are synthetic and separate from evaluator expectations. No case
+is marked passed by creating these files.
+
 ## Сценарии
 
 | ID | Вход/событие | Ожидаемое наблюдаемое поведение |
