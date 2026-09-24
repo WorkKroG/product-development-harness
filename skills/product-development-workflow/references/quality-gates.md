@@ -17,6 +17,29 @@ stopping an unproductive correction cycle, or lacking a preferred tool never con
 missing safety or privacy guarantee into PASS; block only the transition that depends on it
 and name the evidence or correction needed.
 
+## Review coverage
+
+Derive applicable obligations from the original normative binding sources, then map the
+implementation and evidence to them. A copied child brief, previous coverage table, or old
+finding list is input to verify, not the source of the obligation set. Assess four questions
+separately: whether source requirements are covered, whether the implementation conforms,
+whether the evidence is fit for the claimed behavior, and whether each prior finding is
+actually closed. Name unchecked areas and partial closure; neither supports a full PASS.
+
+A blocker stops only its dependent transition. Continue independent safe checks so the
+review reports the bounded state of the candidate rather than only the first failure. State
+the scope inspected and its limits; review evidence does not promise discovery of every
+unknown defect.
+
+## Critical check sufficiency
+
+For each critical check, name the required property and one concrete violation that must
+make the check fail. Evidence that only excludes a forbidden effect does not prove a
+required positive effect. Mocks and assertions must represent the relevant real contract,
+including lifecycle and completion semantics; otherwise record the limitation or missing
+evidence. Use mutation or fault injection when it is a proportionate way to demonstrate
+the violation, not as a universal requirement for every test.
+
 ## Evidence states
 
 - **applicable-covered** — required in the current scope/stage and supported by current identified evidence that meets the gate's exit need.

@@ -44,6 +44,14 @@ Never substitute one for the other. Also include the approved scope and plan ide
 binding sources, process and maturity identities, architecture identity, exact base/head
 when applicable, checks, constraints, and Next action.
 
+Keep each mandatory requirement traceable from its binding source to one owning Work Item
+and observable acceptance. Before dispatch, Task compares the child brief with its approved
+Work Item block and binding sources. A nearest result or non-goal can bound the method, but
+cannot narrow or override a binding requirement. An unowned obligation or unauthorized
+narrowing blocks only that dependent handoff and returns to Task for reconciliation;
+authorized exclusions and deferrals remain effective with their recorded authority and
+conditions.
+
 Sequence shared API, schema, authorization, file, or dependency changes. Parallel work
 is safe only for independent scopes with stable shared contracts and isolated writers.
 One writer owns a shared worktree; start review only after the candidate is stable and
@@ -87,7 +95,9 @@ scope, and unchanged accepted decisions are not requested again.
 Change Review receives the requirements, binding sources, exact base/head, checks, and
 complete candidate diff without the Implementation conversation or its reasoning.
 Findings name a violated requirement, evidence, and observable correction. A new head
-invalidates Change Review PASS.
+invalidates Change Review PASS. Apply the source-derived coverage and critical-check rules
+in `quality-gates.md` rather than treating a child brief or earlier coverage claim as the
+complete requirement set.
 
 Pre-merge corrections stay in the same Work Item and branch. Task forwards candidate
 identity and findings internally. If the original Implementation or reviewer session is
