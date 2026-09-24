@@ -70,6 +70,12 @@ criteria to the current maturity stage, architecture vision, current implementat
 and transition plan. PLAN independently checks the complete plan and exact base against
 all binding sources. A plan or base change invalidates `PLAN_PASS`.
 
+When several asynchronous operations can mutate shared protected state, the plan identifies
+its owning component, invalidation boundary, and which pending success or error completions
+may still write. A transient error preserves the current permitted draft, including edits
+made after submission, rather than restoring an older sent version; use the simplest
+sufficient mechanism.
+
 For a local owner decision, Task presents one identity-bound package containing the
 options when relevant, recommendation, consequences, reviewer verdict, material risks,
 approved boundaries, and next authorized action. Record the owner decision against the
