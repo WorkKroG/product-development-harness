@@ -36,9 +36,13 @@ unknown defect.
 For each critical check, name the required property and one concrete violation that must
 make the check fail. Evidence that only excludes a forbidden effect does not prove a
 required positive effect. Mocks and assertions must represent the relevant real contract,
-including lifecycle and completion semantics; otherwise record the limitation or missing
-evidence. Use mutation or fault injection when it is a proportionate way to demonstrate
-the violation, not as a universal requirement for every test.
+including lifecycle and completion semantics. For a claimed asynchronous result, outcome
+evidence must observe completion of the actual operation; completion of the initiating
+interaction alone is insufficient. An assertion on the real outcome may itself await that
+completion, so do not require a separate wait or prescribe a timer, syntax, or framework.
+Otherwise record the limitation or missing evidence. Use mutation or fault injection when
+it is a proportionate way to demonstrate the violation, not as a universal requirement for
+every test.
 
 ## Evidence states
 
