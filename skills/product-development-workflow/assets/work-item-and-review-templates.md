@@ -18,6 +18,8 @@ agent API. A queued client ID is provisional, not a usable Native ID.
 - Revisit trigger: `<event or fitted limit that requires reassessing the path>`
 - Scope/non-goals: `<included and excluded work>`
 - Binding sources: `<authoritative artifacts and identities>`
+- Requirement ownership: `<binding source + mandatory requirement -> owning Work Item -> observable acceptance>`
+- Child-brief reconciliation: `<approved Work Item comparison and any resolved discrepancy>`
 - Dependencies: `<ordering and stable shared contracts>`
 - Maturity identity: `<current and target stage>`
 - Architecture identity: `<decision version and implementation boundary>`
@@ -45,6 +47,8 @@ agent API. A queued client ID is provisional, not a usable Native ID.
 - Independent reviewer Native ID: `<agent ID>`
 - Reviewed plan hash or base/head/main: `<exact identity required by phase>`
 - Binding sources: `<complete identified set>`
+- Source-derived obligation coverage: `<each obligation with applicable-covered, applicable-missing, not-applicable, or deferred-with-trigger from quality-gates.md; retain authority/conditions; name unchecked areas separately>`
+- Candidate/evidence/finding assessment: `<implementation conformity, evidence fitness, prior-finding closure>`
 - Checks: `<fresh results and environment>`
 - Nearest-result boundaries: `<assess the stated result, not-building boundary, and revisit trigger>`
 - Findings: `<violated requirement, evidence, observable correction; or none>`

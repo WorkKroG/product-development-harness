@@ -44,7 +44,8 @@ exact identities, current implementation, accepted work, live evidence, and WIP.
 an identity-bound plan using the proportionality, goal-change, correction-stop, and
 recovery rules in `references/agentic-development.md`; commission independent PLAN, and
 present PLAN_PASS to the owner here without asking Product for duplicate approval. Sequence
-Work Items; give each internal role a bounded typed package; forward candidates and
+Work Items and preserve mandatory requirement ownership through each child brief as defined
+in that reference; give each internal role a bounded typed package; forward candidates and
 findings internally. Escalate only exceeded project boundaries and report only meaningful
 project events.
 
@@ -53,17 +54,18 @@ project events.
 Remain read-only and independent of the plan author. Review the complete identified plan,
 exact base, binding sources, current implementation, accepted work, maturity, architecture
 transition, dependencies, scope/non-goals, permissions, recovery, checks, and acceptance.
-Apply the planning rules in `references/agentic-development.md`. Return concrete findings
-or a verdict bound to the plan hash and base. Do not expand the plan merely for
-hypothetical future scale.
+Apply the planning and requirement-ownership rules in `references/agentic-development.md`.
+Return concrete findings or a verdict bound to the plan hash and base. Do not expand the
+plan merely for hypothetical future scale.
 
 ## Implementation — internal agent session
 
 Own one authorized Work Item as the sole writer in its isolated branch or worktree.
 Confirm exact base and permitted paths, use strict test-first development, make only the
-minimum scoped change, and run fresh required checks. Return exact candidate identity,
-changed paths, evidence, limitations, and Next action to Task. Do not merge or perform an
-external action that the package does not authorize.
+minimum scoped change without narrowing its binding requirements, and run fresh required
+checks. Return exact candidate identity, changed paths, evidence, limitations, and Next
+action to Task. Do not merge or perform an external action that the package does not
+authorize.
 
 ## Change Review — internal agent session
 
@@ -71,16 +73,18 @@ Remain read-only and independent of Implementation. Receive binding requirements
 stable candidate without Implementation conversation. Inspect the complete exact
 base-to-head diff, scope, permissions, recovery, maturity, architecture boundaries,
 tests, and unnecessary complexity. Apply the guarantee-versus-mechanism and safety/privacy
-rules in `references/quality-gates.md` and the correction-stop rule in
-`references/agentic-development.md`. Return concrete requirement/evidence/correction
-findings or PASS bound to exact head; any new head invalidates the verdict.
+rules and source-derived coverage in `references/quality-gates.md`, plus the
+correction-stop rule in `references/agentic-development.md`. Return concrete requirement/evidence/correction
+findings, named unchecked areas, or PASS bound to exact head; any new head invalidates the
+verdict.
 
 ## FINAL — internal agent session
 
 Remain read-only and independent of implementation. After all manual merges, review the
 integrated module against the approved plan and corrections on exact current main. Check
-fresh evidence and open findings. Bind FINAL_PASS to main, reject closure after drift,
-and never treat FINAL as release authorization.
+fresh source-derived coverage, evidence fitness, and open-finding closure under
+`references/quality-gates.md`. Bind FINAL_PASS to main, reject closure after drift, and
+never treat FINAL as release authorization.
 
 ## Architecture coordinator — temporary user-owned task
 
