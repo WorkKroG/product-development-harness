@@ -49,7 +49,6 @@ agent API. A queued client ID is provisional, not a usable Native ID.
 - Binding sources: `<complete identified set>`
 - Source-derived obligation coverage: `<each obligation with applicable-covered, applicable-missing, not-applicable, or deferred-with-trigger from quality-gates.md; retain authority/conditions; name unchecked areas separately>`
 - Candidate/evidence/finding assessment: `<implementation conformity, evidence fitness, prior-finding closure>`
-- Critical checks: `<property, concrete failing violation, result, and real-contract limitation>`
 - Checks: `<fresh results and environment>`
 - Nearest-result boundaries: `<assess the stated result, not-building boundary, and revisit trigger>`
 - Findings: `<violated requirement, evidence, observable correction; or none>`

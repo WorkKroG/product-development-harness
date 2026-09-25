@@ -73,9 +73,8 @@ Remain read-only and independent of Implementation. Receive binding requirements
 stable candidate without Implementation conversation. Inspect the complete exact
 base-to-head diff, scope, permissions, recovery, maturity, architecture boundaries,
 tests, and unnecessary complexity. Apply the guarantee-versus-mechanism and safety/privacy
-rules, source-derived coverage, and critical-check sufficiency in
-`references/quality-gates.md`, plus the correction-stop rule in
-`references/agentic-development.md`. Return concrete requirement/evidence/correction
+rules and source-derived coverage in `references/quality-gates.md`, plus the
+correction-stop rule in `references/agentic-development.md`. Return concrete requirement/evidence/correction
 findings, named unchecked areas, or PASS bound to exact head; any new head invalidates the
 verdict.
 

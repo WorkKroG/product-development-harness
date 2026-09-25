@@ -1,102 +1,107 @@
 # Preserve Binding Requirements — Implementation Plan
 
-**Goal:** preserve approved mandatory behavior through work-item handoff, independent
-review, and critical test evidence using the existing workflow records.
+**Goal:** prepare a reduced documentation candidate for requirement-preserving handoff
+and explicit review scope, without claiming complete defect discovery.
 
 **Source base:** `b4de2efbcf00c20d530602e9a631998b2ee46423`.
-**Plan identity:** `REQUIREMENTS-PRESERVATION-v1`; bind PLAN review to this file's
-SHA-256 and the source base. The owner has approved the bounded behavior and local
-implementation below; ordinary technical choices do not reopen that approval.
+**Preserved prior candidate:** `a54186b632b8a6558f61a6015da6180807612c0e`.
+**Plan identity:** `REQUIREMENTS-PRESERVATION-v2-reduced`; bind PLAN review to this
+file's SHA-256 and source base. On 2026-09-25 the owner approved stopping experiments
+and narrowing the existing package to outcomes 01–02. This supersedes the original
+three-outcome execution protocol; it does not accept the original package or authorize
+publication. Preserve earlier commits and local evidence without rewriting history.
 
-**Architecture:** one cohesive instruction change, with dispatch rules in the delivery
-reference, evidence/review rules in quality gates, and short fields/pointers in existing
-templates and role prompts. No new gate, role, registry, checker, or runtime mechanism.
+**Architecture:** compact clarification of existing canonical delivery/review references,
+role prompts, and template fields. No new process, gate, role, registry, mandatory
+separate coverage matrix, checker, or runtime mechanism.
 **Stack:** existing Markdown instructions, Git, existing Python contract checks.
 **Binding sources:** [SPEC](../SPEC.md), [AGENTS](../../../AGENTS.md), the active skill,
-and the accepted requirements recorded here. Older documentation-only direction and
-historical plans do not replace the owner's current bounded mandate.
+and the latest owner decision recorded here. Older plans and generic skill workflows
+do not override the owner's explicit stop on further wording/behavioral trials.
 
 ## Accepted scope and ownership
 
-One Work Item owns these three connected outcomes:
+One Work Item owns the reduced documentation change:
 
 1. Preserve mandatory requirement and binding source → owning WI → observable acceptance
    in the existing plan/package. Compare each child brief with its approved WI block
-   before dispatch. Nearest result/non-goals cannot override binding requirements.
-   Unauthorized narrowing or an unowned obligation blocks only the dependent handoff;
-   authorized exclusions/deferrals retain their authority and conditions.
-2. Assess source requirements, implementation, evidence fitness, and closure of old
-   findings separately. Derive applicable obligation coverage from original normative
-   sources, not a copied child brief or prior coverage table. Name unchecked areas;
-   partial closure is not full PASS. Continue independent safe checks after a blocker.
-   Do not promise discovery of every unknown defect.
-3. For critical checks, name the property and a concrete violation that would fail the
-   check. Absence of a forbidden effect does not prove a required positive effect.
-   Mocks, lifecycle, and completion must match the real contract. No mandatory mutation
-   testing of every test.
+   and normative sources before dispatch. Nearest result/non-goals cannot override
+   binding requirements. Unauthorized narrowing or an unowned obligation blocks only
+   the dependent handoff; authorized exclusions/deferrals retain their authority and
+   conditions.
+2. Assess source requirements, implementation, existing evidence, and closure of old
+   findings separately. Derive applicable review scope from original normative sources,
+   not only child wording, prior findings, or an old coverage table. Name unchecked areas
+   and partial closure; these do not support a full PASS. Continue independent safe
+   checks after a blocker and state the inspected scope and limitations. Do not promise
+   discovery of every unknown defect or require the last probe's separate coverage map.
+
+Outcome 03 is deferred: remove only this package's experimental critical-check
+sufficiency protocol, property → concrete failing violation requirement, added
+completion wording, and corresponding template fields/role-prompt demands. Where a
+line combines outcomes 02 and 03, keep the minimal outcome-02 text. Preserve all
+testing, privacy, evidence, and shared-async-state guarantees already in the source base,
+including the accepted async guidance. Acceptance of the whole original package remains
+deferred; removing experimental instructions does not turn failed evidence into PASS.
 
 ## Files and non-goals
 
-Modify only these existing active-skill files:
+Modify only this existing plan and these existing active-skill files:
 
-- `references/agentic-development.md`: requirement ownership, dispatch reconciliation,
-  and routing to the existing review/evidence rules.
-- `references/quality-gates.md`: source-derived coverage and critical-check sufficiency.
-- `assets/work-item-and-review-templates.md`: compact work-package/review slots for the
-  above relationships, reusing existing evidence states without a second registry.
-- `assets/role-prompts.md`: concise responsibilities/pointers for Task, PLAN,
-  Implementation, Change Review, and FINAL, without repeating the canonical paragraphs.
+- `references/agentic-development.md`: retain requirement ownership and child-brief
+  reconciliation; keep routing to source-derived review scope, remove routing to the
+  experimental critical-check protocol.
+- `references/quality-gates.md`: retain the compact review-coverage clarification;
+  remove only the added Critical check sufficiency section.
+- `assets/work-item-and-review-templates.md`: retain compact ownership, reconciliation,
+  review-scope, and separate assessment slots; remove the added Critical checks field.
+- `assets/role-prompts.md`: retain bounded responsibilities for outcomes 01–02; remove
+  the experimental critical-check sufficiency demand without duplicating canonical rules.
 
-The technical plan itself is the only new repository document. Keep SKILL.md routing,
-independent roles, native identity boundaries, exact-head review, human merge, safety,
-privacy, and the existing shared-async-state paragraph unchanged. No application,
-installed skill, settings, decomposition/breaker redesign, async matrix, skill-composition
-policy, platform integration, new tests/programs, or other feedback direction is included.
-No public push/PR, merge, release, or installation is authorized for this package.
+Keep SKILL.md routing, independent roles, native identity boundaries, exact-head review,
+manual merge, and all source-base guarantees unchanged. No new repository document,
+application change, installed skill/settings change, dependencies, scripts/tests/harness,
+mandatory matrix, process redesign, or further behavioral/wording experiments. No push,
+PR, merge, release, or installation is authorized. Keep private evidence outside Git.
 
 ## Execution and verification
 
-- [ ] Independently review this exact plan/base before active-skill changes. The reviewer
-  checks all accepted obligations, allowed paths, proportionality, and the bounded
-  before/after protocol. A changed plan/base requires a fresh PLAN recommendation.
-- [ ] Before editing, freeze evaluator criteria separately from executor inputs. Use one
-  small equipment-inspection packet with source requirements, approved parent WI,
-  narrowed child brief, candidate/tests, and a prior coverage/closure claim. A Task
-  agent decides the next handoff; a separate Change Review agent evaluates the supplied
-  candidate independently. Include revision selection lost in the child brief, dirty
-  navigation, a required audit event, and a privacy-only check that passes without it.
-  Include accurate coverage/closed findings and an authorized deferral to detect false
-  findings, plus a separately authorized safe task that must not freeze.
-- [ ] Run one baseline pass for each role and one simple static-label counterexample,
-  with fresh agents, the current skill, realistic raw inputs, and no expected answers,
-  author context, feedback, or evaluator criteria. Store only compact local artifacts
-  outside the repository. Do not implement an application or test harness.
-- [ ] One Implementation agent edits the four bounded files using skill-creator and
-  writing-skills. Add only operationally useful guidance for the three accepted outcomes;
-  keep existing records and use cross-references to avoid duplicating rules.
-- [ ] Repeat the same three inputs once with the candidate and fresh agents. Compare
-  actual artifacts to the frozen criteria, including false findings and process overhead.
-  Mark ambiguous behavior as inconclusive. If baseline passes, retain that result;
-  historical failure is separate evidence, not a synthetic RED or causal-gain claim.
-- [ ] Run `python3 -B -m unittest discover -s tests -v`,
-  `shasum -a 256 -c BASELINE.sha256`, and `git diff --check`. Existing quick_validate may
-  be attempted if its dependency is available; do not install dependencies for this edit.
-  Do not add wording-matching tests that merely restate the instructions.
-- [ ] Commit locally and give independent Change Review the exact base/head, this plan,
-  original requirements, complete diff, checks, and bounded raw evaluation artifacts,
-  without the author's conversation. Resolve required findings using the existing
-  correction process. No FINAL claim before a separately authorized manual merge.
+1. Confirm the clean existing worktree, source base and preserved candidate; fetch and
+   record current main without changing the checkout. Independently review this exact
+   revised plan/base for the authorized narrowing before active-skill edits. No new
+   research or owner reconfirmation is needed for this accepted boundary.
+2. One independent Implementation agent uses skill-creator and applicable implementation
+   guidance to edit the four bounded files. Compare against the full source-base diff,
+   removing only outcome-03 additions and preserving outcomes 01–02 and base guarantees.
+3. Run the existing `python3 -B -m unittest discover -s tests -v`,
+   `shasum -a 256 -c BASELINE.sha256`, and `git diff --check`. Attempt existing
+   quick_validate only if its dependency is available; do not install dependencies.
+   Save fresh output and identity outside Git. No new tests or cold behavioral trials.
+4. Commit locally without rewriting prior commits. Give independent Change Review the
+   exact base/new head, this plan, original accepted boundaries, complete base-to-head
+   diff, and fresh check evidence with clean bounded context. Review removal of 03,
+   preservation of base guarantees, scope, and truthful claims. Any changed head requires
+   current review; earlier source-text PASS does not transfer. Resolve concrete required
+   corrections through the existing implementation/review process without new experiments.
+5. Report only readiness of the reduced documentation candidate for owner consideration,
+   with exact identities, changed paths, checks, review evidence, and limitations in the
+   local evidence record. FINAL remains a distinct post-manual-merge role, not a claim
+   available from this pre-merge documentation review.
 
-## Roles, limits, and exit
+PLAN and Change Review use native `gpt-5.6-sol/high`; Implementation uses native
+`gpt-5.6-sol/medium`. Record requested/accepted assignment separately from independently
+known runtime. Use distinct bounded internal sessions, one writer, and no new user task.
 
-PLAN/Task probes/Change Review use native `gpt-5.6-sol/high`; ordinary Implementation
-uses `gpt-5.6-sol/medium`; the simple counterexample uses `gpt-5.6-terra/medium`.
-Record requested/accepted assignment separately from independently known runtime.
-Use distinct internal sessions; one writer. No new user-owned task.
+## Evidence limits and exit
 
-Exit: the scoped candidate satisfies all three accepted instruction outcomes, preserves
-existing guarantees and the simple counterexample, has current relevant checks and an
-independent exact-head review, and reports before/after findings and limitations.
-Single synthetic responses do not prove statistical reliability, application correctness,
-model/runtime behavior, or causal attribution to the skill. The next real task remains
-the practical validation. Escalate only material scope/risk/cost or shared-contract changes.
+Earlier experiments were mixed or unsuccessful. Historical replay was not a controlled
+A/B comparison and did not establish complete review coverage. The synthetic R FAIL and
+the missed edits-during-save scenario remain open in preserved local evidence. The
+coverage-format probe did not demonstrate sufficient benefit to require its format.
+
+The reduced candidate is deliberately not behaviorally retested: the owner stopped
+further runs. Fresh structural checks and independent review can establish conformity of
+the reduced text with this scope and preservation of base instructions; they cannot
+establish behavioral reliability, close outcome 03 or the prior failures, accept all
+three original outcomes, or authorize integration/publication. Exit is a locally committed,
+exact-head-reviewed reduced documentation candidate with these limitations stated.

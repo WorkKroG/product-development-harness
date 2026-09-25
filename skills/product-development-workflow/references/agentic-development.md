@@ -95,8 +95,8 @@ scope, and unchanged accepted decisions are not requested again.
 Change Review receives the requirements, binding sources, exact base/head, checks, and
 complete candidate diff without the Implementation conversation or its reasoning.
 Findings name a violated requirement, evidence, and observable correction. A new head
-invalidates Change Review PASS. Apply the source-derived coverage and critical-check rules
-in `quality-gates.md` rather than treating a child brief or earlier coverage claim as the
+invalidates Change Review PASS. Apply the source-derived coverage rules in
+`quality-gates.md` rather than treating a child brief or earlier coverage claim as the
 complete requirement set.
 
 Pre-merge corrections stay in the same Work Item and branch. Task forwards candidate
