@@ -480,19 +480,21 @@ excluded. The owner can view and merge through the GitHub UI.
 
 ## 9. Models and skills
 
-The initial profile saves the approved Recipes matrix:
+The current profile uses the owner's 2026-10-05 model update. The earlier approved
+Recipes matrix established the role boundaries; the model IDs below are current
+assignments, not the IDs used by the historical project:
 
 | Work | Model/reasoning |
 |---|---|
-| Product/Task coordination, decomposition, PLAN review | gpt-5.6-sol/high |
-| Regular implementation and clear bugfix | gpt-5.6-sol/medium |
-| Small unambiguous change with low risk, trial mode | gpt-5.6-terra/medium |
-| Complex debugging | gpt-5.6-sol/high; escalation gpt-6-astra/high |
-| Change Review, including requirements/UX | gpt-5.6-sol/high |
-| Essential architecture, security review, FINAL, second opinion | gpt-6-astra/high |
+| Product/Task coordination, decomposition, PLAN review | gpt-6-sol/high |
+| Regular implementation and clear bugfix | gpt-6-sol/medium |
+| Small unambiguous change with low risk, trial mode | gpt-6-luna/medium |
+| Complex debugging | gpt-6-sol/high; escalation gpt-6.1-sol/high |
+| Change Review, including requirements/UX | gpt-6-sol/high |
+| Essential architecture, security review, FINAL, second opinion | gpt-6.1-sol/high |
 
-For early research/PM/finance/UX roles, Sol/high is offered in the starting profile;
-this is a new v0.1 offering and not the already proven Recipes selection.
+For early research/PM/finance/UX roles, gpt-6-sol/high is offered in the starting profile;
+this is a v0.1 role offering and was not part of the historical Recipes selection.
 Matrix - product configuration. Runtime availability check; no model
 does not allow silent substitution. When create/follow-up, pass native model/reasoning fields
 and distinguish the assigned model from the independently validated factual one.

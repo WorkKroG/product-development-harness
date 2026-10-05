@@ -8,19 +8,19 @@ access observations in this portable asset.
 
 | Role or work | Requested model | Reasoning |
 |---|---|---|
-| Product coordination | `gpt-5.6-sol` | `high` |
-| Task coordination and decomposition | `gpt-5.6-sol` | `high` |
-| PLAN review | `gpt-5.6-sol` | `high` |
-| Ordinary Implementation and bugfix | `gpt-5.6-sol` | `medium` |
-| Small obvious low-risk change or trial | `gpt-5.6-terra` | `medium` |
-| Complex debugging | `gpt-5.6-sol` | `high` |
-| Complex debugging escalation | `gpt-6-astra` | `high` |
-| Change Review | `gpt-5.6-sol` | `high` |
-| Substantial architecture | `gpt-6-astra` | `high` |
-| Security review | `gpt-6-astra` | `high` |
-| FINAL | `gpt-6-astra` | `high` |
-| Independent second opinion | `gpt-6-astra` | `high` |
-| Early research, PM, finance, and UX | `gpt-5.6-sol` | `high` |
+| Product coordination | `gpt-6-sol` | `high` |
+| Task coordination and decomposition | `gpt-6-sol` | `high` |
+| PLAN review | `gpt-6-sol` | `high` |
+| Ordinary Implementation and bugfix | `gpt-6-sol` | `medium` |
+| Small obvious low-risk change or trial | `gpt-6-luna` | `medium` |
+| Complex debugging | `gpt-6-sol` | `high` |
+| Complex debugging escalation | `gpt-6.1-sol` | `high` |
+| Change Review | `gpt-6-sol` | `high` |
+| Substantial architecture | `gpt-6.1-sol` | `high` |
+| Security review | `gpt-6.1-sol` | `high` |
+| FINAL | `gpt-6.1-sol` | `high` |
+| Independent second opinion | `gpt-6.1-sol` | `high` |
+| Early research, PM, finance, and UX | `gpt-6-sol` | `high` |
 
 Pass model and reasoning through native assignment fields. Record Requested
 model/reasoning, Accepted native assignment, and Independently verified runtime fact

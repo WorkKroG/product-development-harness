@@ -60,12 +60,13 @@ Use native model/reasoning fields and verify availability; never silently substi
 
 | Stage | Model / reasoning |
 |---|---|
-| Product/Task coordination, decomposition, PLAN review | gpt-5.6-sol / high |
-| Ordinary implementation and bugfix | gpt-5.6-sol / medium |
-| Small obvious low-risk change, trial | gpt-5.6-terra / medium |
-| Complex debugging | gpt-5.6-sol / high; escalation gpt-6-astra / high |
-| Change Review | gpt-5.6-sol / high |
-| Substantial architecture, security review, FINAL, second opinion | gpt-6-astra / high |
+| Product/Task coordination, decomposition, PLAN review | gpt-6-sol / high |
+| Ordinary implementation and bugfix | gpt-6-sol / medium |
+| Small obvious low-risk change, trial | gpt-6-luna / medium |
+| Complex debugging | gpt-6-sol / high; escalation gpt-6.1-sol / high |
+| Change Review | gpt-6-sol / high |
+| Substantial architecture, security review, FINAL, second opinion | gpt-6.1-sol / high |
+| Early research, PM, finance, and UX | gpt-6-sol / high |
 
 ## GitHub and verification
 
