@@ -13,6 +13,72 @@ class SkillContractTest(unittest.TestCase):
         self.assertTrue(path.is_file(), f"missing active skill file: {relative_path}")
         return path.read_text(encoding="utf-8")
 
+    def model_rows(self, content, start, end):
+        section = content[content.index(start) : content.index(end, content.index(start))]
+        rows = {}
+        for line in section.splitlines():
+            if not line.startswith("| ") or line.startswith("|---"):
+                continue
+            columns = [column.strip().strip("`") for column in line.strip("|").split("|")]
+            if columns[0] in ("Role or work", "Stage", "Work"):
+                continue
+            rows[columns[0]] = tuple(columns[1:])
+        return rows
+
+    def test_active_role_model_assignments(self):
+        roles = self.model_rows(
+            self.read_active("assets/role-prompts.md"),
+            "## Model assignment matrix", "Pass model and reasoning",
+        )
+        self.assertEqual({
+            "Product coordination": ("gpt-6-sol", "high"),
+            "Task coordination and decomposition": ("gpt-6-sol", "high"),
+            "PLAN review": ("gpt-6-sol", "high"),
+            "Ordinary Implementation and bugfix": ("gpt-6-sol", "medium"),
+            "Small obvious low-risk change or trial": ("gpt-6-luna", "medium"),
+            "Complex debugging": ("gpt-6-sol", "high"),
+            "Complex debugging escalation": ("gpt-6.1-sol", "high"),
+            "Change Review": ("gpt-6-sol", "high"),
+            "Substantial architecture": ("gpt-6.1-sol", "high"),
+            "Security review": ("gpt-6.1-sol", "high"),
+            "FINAL": ("gpt-6.1-sol", "high"),
+            "Independent second opinion": ("gpt-6.1-sol", "high"),
+            "Early research, PM, finance, and UX": ("gpt-6-sol", "high"),
+        }, roles)
+
+    def test_current_model_counterparts_agree_with_active_roles(self):
+        roles = self.model_rows(
+            self.read_active("assets/role-prompts.md"),
+            "## Model assignment matrix", "Pass model and reasoning",
+        )
+        agents = self.model_rows(
+            (ROOT / "AGENTS.md").read_text(encoding="utf-8"),
+            "## Models", "## GitHub and verification",
+        )
+        spec = self.model_rows(
+            (ROOT / "docs/development/SPEC.md").read_text(encoding="utf-8"),
+            "## 9. Models and skills", "For early research/PM/finance/UX roles",
+        )
+        counterparts = (
+            (agents, "Product/Task coordination, decomposition, PLAN review", "gpt-6-sol / high"),
+            (agents, "Ordinary implementation and bugfix", "gpt-6-sol / medium"),
+            (agents, "Small obvious low-risk change, trial", "gpt-6-luna / medium"),
+            (agents, "Complex debugging", "gpt-6-sol / high; escalation gpt-6.1-sol / high"),
+            (agents, "Change Review", "gpt-6-sol / high"),
+            (agents, "Substantial architecture, security review, FINAL, second opinion", "gpt-6.1-sol / high"),
+            (agents, "Early research, PM, finance, and UX", "gpt-6-sol / high"),
+            (spec, "Product/Task coordination, decomposition, PLAN review", "gpt-6-sol/high"),
+            (spec, "Regular implementation and clear bugfix", "gpt-6-sol/medium"),
+            (spec, "Small unambiguous change with low risk, trial mode", "gpt-6-luna/medium"),
+            (spec, "Complex debugging", "gpt-6-sol/high; escalation gpt-6.1-sol/high"),
+            (spec, "Change Review, including requirements/UX", "gpt-6-sol/high"),
+            (spec, "Essential architecture, security review, FINAL, second opinion", "gpt-6.1-sol/high"),
+        )
+        for table, role, assignment in counterparts:
+            with self.subTest(role=role, assignment=assignment):
+                self.assertEqual((assignment,), table.get(role))
+        self.assertEqual(("gpt-6-sol", "high"), roles["Early research, PM, finance, and UX"])
+
     def test_light_viability_precedes_journey(self):
         lifecycle = self.read_active("references/lifecycle.md")
         self.assertLess(lifecycle.index("## 3.5."), lifecycle.index("## 4."))
