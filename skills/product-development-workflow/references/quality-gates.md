@@ -12,10 +12,10 @@ mechanisms, not guarantees themselves. A reviewer identifies the violated guaran
 observable harm. It may assess candidate corrections, but it cannot impose a new
 architecture as the only correction without the decision required for material scope.
 
-Safety and privacy remain non-negotiable when applicable. Simplifying a mechanism,
-stopping an unproductive correction cycle, or lacking a preferred tool never converts a
-missing safety or privacy guarantee into PASS; block only the transition that depends on it
-and name the evidence or correction needed.
+Safety, privacy, and data-loss protection remain non-negotiable when applicable.
+Simplifying a mechanism, stopping an unproductive correction cycle, or lacking a
+preferred tool never converts a missing guarantee into PASS; block only the transition
+that depends on it and name the evidence or correction needed.
 
 ## Review coverage
 
@@ -25,6 +25,13 @@ finding list is input to verify, not the source of the obligation set. Assess fo
 separately: whether source requirements are covered, whether the implementation conforms,
 whether the evidence is fit for the claimed behavior, and whether each prior finding is
 actually closed. Name unchecked areas and partial closure; neither supports a full PASS.
+
+Classify an applicable binding violation separately from an improvement proposal. A
+proposal does not silently become a blocker; adding a requirement needs the decision
+authority for its scope and stage. Credible evidence of serious new safety, privacy, or
+data-loss risk must be escalated for that decision and the dependent transition held as
+needed, even when the risk was absent from the copied brief. Do not discard it merely as
+out of scope or waive an existing binding requirement without a valid revision.
 
 A blocker stops only its dependent transition. Continue independent safe checks so the
 review reports the bounded state of the candidate rather than only the first failure. State

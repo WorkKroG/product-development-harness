@@ -51,13 +51,20 @@ agent API. A queued client ID is provisional, not a usable Native ID.
 - Candidate/evidence/finding assessment: `<implementation conformity, evidence fitness, prior-finding closure>`
 - Checks: `<fresh results and environment>`
 - Nearest-result boundaries: `<assess the stated result, not-building boundary, and revisit trigger>`
-- Findings: `<violated requirement, evidence, observable correction; or none>`
+- Findings: `<binding violation with source, evidence, and observable correction; improvement proposal separately; or none>`
+- Correction review: `<if applicable, changed plan/base/head identity; retained evidence and continued applicability; correction, dependencies, impact, integration, and review/check depth>`
+- New serious risk: `<if applicable, safety/privacy/data-loss evidence, dependent transition, and scope/authority decision needed>`
 - Verdict: `<PLAN_PASS, PASS, FINAL_PASS, or changes required>`
 - Invalidation condition: `<plan/base change, new head, or main drift>`
 
-PLAN review binds to plan content hash and exact base. Change Review binds to exact base
-and head and records the complete changed-path set and full-diff inspection. FINAL binds
-to exact current main and the complete set of integrated planned/corrective Work Items.
+Initial PLAN review covers the complete plan and binds to its content hash and exact base.
+Initial Change Review inspects the complete diff, records the changed-path set, and binds
+to exact base and head. Every correction gets a fresh identity-bound verdict with complete
+applicable obligation coverage; verified still-applicable evidence for unchanged parts may
+be retained after inspecting impact and integration. Broad or unclear effects, missing or
+unreliable initial evidence, or changed requirements, environment, or binding policy call
+for broader or full review and checks. Required CI remains required. FINAL binds to exact
+current main and the complete set of integrated planned/corrective Work Items.
 
 ## Local decision
 

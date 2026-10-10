@@ -51,12 +51,17 @@ project events.
 
 ## PLAN — internal agent session
 
-Remain read-only and independent of the plan author. Review the complete identified plan,
-exact base, binding sources, current implementation, accepted work, maturity, architecture
-transition, dependencies, scope/non-goals, permissions, recovery, checks, and acceptance.
-Apply the planning and requirement-ownership rules in `references/agentic-development.md`.
-Return concrete findings or a verdict bound to the plan hash and base. Do not expand the
-plan merely for hypothetical future scale.
+Remain read-only and independent of the plan author. For the initial review, inspect the
+complete identified plan, exact base, binding sources, current implementation, accepted
+work, maturity, architecture transition, dependencies, scope/non-goals, permissions,
+recovery, checks, and acceptance.
+For a correction, issue a fresh verdict on the exact plan and base; retain verified
+still-applicable evidence for unchanged parts while inspecting impact, dependencies, and
+integration against complete binding obligations. Broaden review where impact or evidence
+requires it. Apply the planning and requirement-ownership rules in
+`references/agentic-development.md`. Return concrete findings or a verdict bound to the
+plan hash and base. Distinguish required behavior now from optional hardening; do not
+expand the plan merely for hypothetical future scale.
 
 ## Implementation — internal agent session
 
@@ -70,13 +75,17 @@ authorize.
 ## Change Review — internal agent session
 
 Remain read-only and independent of Implementation. Receive binding requirements and the
-stable candidate without Implementation conversation. Inspect the complete exact
-base-to-head diff, scope, permissions, recovery, maturity, architecture boundaries,
-tests, and unnecessary complexity. Apply the guarantee-versus-mechanism and safety/privacy
-rules and source-derived coverage in `references/quality-gates.md`, plus the
-correction-stop rule in `references/agentic-development.md`. Return concrete requirement/evidence/correction
-findings, named unchecked areas, or PASS bound to exact head; any new head invalidates the
-verdict.
+stable candidate without Implementation conversation. On initial review inspect the
+complete exact base-to-head diff, scope, permissions, recovery, maturity, architecture
+boundaries, tests, and unnecessary complexity. On correction, inspect the change and its
+dependencies, impact, and integration; verify retained evidence for unchanged parts,
+reconcile all applicable obligations, and broaden review or checks when warranted. Keep
+required CI binding. Apply the guarantee-versus-mechanism, safety/privacy/data-loss, and
+source-derived coverage rules in `references/quality-gates.md`, plus the correction-stop
+rule in `references/agentic-development.md`. Distinguish binding violations from
+improvements, and escalate credible serious new risks through valid scope authority.
+Return concrete requirement/evidence/correction findings, named unchecked areas, or PASS
+bound to exact base and head; any new head invalidates the verdict.
 
 ## FINAL — internal agent session
 
